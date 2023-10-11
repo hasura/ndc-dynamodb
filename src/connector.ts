@@ -2,7 +2,7 @@ import { CapabilitiesResponse, Connector, ExplainResponse, MutationRequest, Muta
 import { JSONSchemaObject } from "@json-schema-tools/meta-schema";
 import { capabilities } from "./capabilities";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { Configuration, configuration_schema, makeEmptyConfiguration } from "./configuration";
+import { Configuration, configurationSchema, makeEmptyConfiguration, updateConfiguration } from "./configuration";
 
 
 type State = {
@@ -15,16 +15,17 @@ export const connector: Connector<Configuration, State> = {
   },
 
   get_configuration_schema: function (): JSONSchemaObject {
-    return configuration_schema;
+    return configurationSchema;
   },
 
   make_empty_configuration: makeEmptyConfiguration,
 
-  validate_raw_configuration: function (configuration: Configuration): Promise<Configuration> {
-    throw new Error("Function not implemented.");
+  update_configuration: async function (configuration: Configuration): Promise<Configuration> {
+    const dynamoDbClient = createDynamoDbClient(configuration);
+    return await updateConfiguration(dynamoDbClient, configuration);
   },
 
-  update_configuration: function (configuration: Configuration): Promise<Configuration> {
+  validate_raw_configuration: function (configuration: Configuration): Promise<Configuration> {
     throw new Error("Function not implemented.");
   },
 
@@ -75,8 +76,19 @@ function createDynamoDbClient(configuration: Configuration): DynamoDBClient {
         }
       : {};
 
+  const endpointConfig =
+    configuration.localDynamoDbEndpoint
+      ? { endpoint: configuration.localDynamoDbEndpoint }
+      : {}
+
   return new DynamoDBClient({
     region: configuration.awsRegion,
-    ...credentialsConfig
+    ...credentialsConfig,
+    ...endpointConfig,
   });
+}
+
+type ValidationResult<TConfiguration> = {
+  schema: SchemaResponse,
+  resolved_configuration: TConfiguration
 }

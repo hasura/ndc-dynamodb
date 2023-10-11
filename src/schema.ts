@@ -27,7 +27,7 @@ export type SecondaryIndexSchema = {
   keySchema: KeySchema,
 }
 
-export async function getTables(dynamoDbClient: DynamoDBClient) {
+export async function getTables(dynamoDbClient: DynamoDBClient): Promise<TableSchema[]> {
   const paginator = paginateListTables({client: dynamoDbClient}, {});
 
   const tableNames: string[] = [];
@@ -59,6 +59,8 @@ export async function getTables(dynamoDbClient: DynamoDBClient) {
       })) ?? [],
     });
   }
+
+  return tableSchemas;
 }
 
 function getKeySchema(keySchemaElements: KeySchemaElement[], indexDescription: string): KeySchema {
@@ -74,44 +76,54 @@ function getKeySchema(keySchemaElements: KeySchemaElement[], indexDescription: s
     };
 }
 
+enum ScalarType {
+  String = "String",
+  Int = "Int",
+  Float = "Float",
+  Boolean = "Boolean",
+  Binary = "Binary",
+  Map = "Map",
+  List = "List",
+}
+
 function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
   switch (attributeType) {
     case "S":
       return {
         type: "named",
-        name: "String",
+        name: ScalarType.String,
       };
     case "N":
       return {
         type: "named",
-        name: "Float",
+        name: ScalarType.Float,
       };
     case "B":
       return {
         type: "named",
-        name: "Binary",
+        name: ScalarType.Binary,
       };
     case "BOOL":
       return {
         type: "named",
-        name: "Boolean",
+        name: ScalarType.Boolean,
       };
     case "M":
       return {
         type: "named",
-        name: "Map",
+        name: ScalarType.Map,
       };
     case "L":
       return {
         type: "named",
-        name: "List",
+        name: ScalarType.List,
       };
     case "SS":
       return {
         type: "array",
         element_type: {
           type: "named",
-          name: "String"
+          name: ScalarType.String
         },
       };
     case "NS":
@@ -119,7 +131,7 @@ function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
         type: "array",
         element_type: {
           type: "named",
-          name: "Float"
+          name: ScalarType.Float
         },
       };
     case "BS":
@@ -127,7 +139,7 @@ function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
         type: "array",
         element_type: {
           type: "named",
-          name: "Binary"
+          name: ScalarType.Binary
         },
       };
   }
