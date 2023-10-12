@@ -5,7 +5,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { ObjectType } from "@hasura/ndc-sdk-typescript";
 // configuration.schema.json can be regenerated from the Configuration type
 // by running 'npm run regenerate-configuration-jsonschema'
-import configurationSchemaJson from "./configuration.schema.json";
+import configurationSchemaJson from "./configuration-schema.generated.json";
 
 export const CURRENT_VERSION = 1;
 
