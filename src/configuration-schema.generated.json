@@ -1,0 +1,278 @@
+{
+  "$ref": "#/definitions/Configuration",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AttributeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "dynamoType": {
+          "$ref": "#/definitions/DynamoAttributeType"
+        },
+        "name": {
+          "type": "string"
+        },
+        "schemaType": {
+          "$ref": "#/definitions/Type"
+        }
+      },
+      "required": [
+        "name",
+        "dynamoType"
+      ],
+      "type": "object"
+    },
+    "AwsCredentials": {
+      "additionalProperties": false,
+      "properties": {
+        "accessKeyId": {
+          "type": "string"
+        },
+        "secretAccessKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accessKeyId",
+        "secretAccessKey"
+      ],
+      "type": "object"
+    },
+    "Configuration": {
+      "additionalProperties": false,
+      "properties": {
+        "awsCredentials": {
+          "$ref": "#/definitions/AwsCredentials"
+        },
+        "awsRegion": {
+          "type": "string"
+        },
+        "localDynamoDbEndpoint": {
+          "type": "string"
+        },
+        "objectTypes": {
+          "items": {
+            "$ref": "#/definitions/ObjectType"
+          },
+          "type": "array"
+        },
+        "tables": {
+          "items": {
+            "$ref": "#/definitions/TableSchema"
+          },
+          "type": "array"
+        },
+        "version": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "version",
+        "awsRegion",
+        "tables",
+        "objectTypes"
+      ],
+      "type": "object"
+    },
+    "DynamoAttributeType": {
+      "enum": [
+        "S",
+        "N",
+        "B",
+        "BOOL",
+        "M",
+        "L",
+        "SS",
+        "NS",
+        "BS"
+      ],
+      "type": "string"
+    },
+    "KeySchema": {
+      "additionalProperties": false,
+      "properties": {
+        "hashKeyAttributeName": {
+          "type": "string"
+        },
+        "rangeKeyAttributeName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "hashKeyAttributeName",
+        "rangeKeyAttributeName"
+      ],
+      "type": "object"
+    },
+    "ObjectField": {
+      "additionalProperties": false,
+      "description": "The definition of an object field",
+      "properties": {
+        "description": {
+          "description": "Description of this field",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/definitions/Type",
+          "description": "The type of this field"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "ObjectType": {
+      "additionalProperties": false,
+      "description": "The definition of an object type",
+      "properties": {
+        "description": {
+          "description": "Description of this type",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/definitions/ObjectField"
+          },
+          "description": "Fields defined on this object type",
+          "type": "object"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "type": "object"
+    },
+    "SecondaryIndexSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "indexName": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "length": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "length"
+          ],
+          "type": "object"
+        },
+        "keySchema": {
+          "$ref": "#/definitions/KeySchema"
+        }
+      },
+      "required": [
+        "indexName",
+        "keySchema"
+      ],
+      "type": "object"
+    },
+    "TableSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "attributeSchema": {
+          "items": {
+            "$ref": "#/definitions/AttributeSchema"
+          },
+          "type": "array"
+        },
+        "globalSecondaryIndexes": {
+          "items": {
+            "$ref": "#/definitions/SecondaryIndexSchema"
+          },
+          "type": "array"
+        },
+        "keySchema": {
+          "$ref": "#/definitions/KeySchema"
+        },
+        "localSecondaryIndexes": {
+          "items": {
+            "$ref": "#/definitions/SecondaryIndexSchema"
+          },
+          "type": "array"
+        },
+        "tableName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tableName",
+        "attributeSchema",
+        "keySchema",
+        "globalSecondaryIndexes",
+        "localSecondaryIndexes"
+      ],
+      "type": "object"
+    },
+    "Type": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "The name can refer to a primitive type or a scalar type",
+              "type": "string"
+            },
+            "type": {
+              "const": "named",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "nullable",
+              "type": "string"
+            },
+            "underlying_type": {
+              "$ref": "#/definitions/Type",
+              "description": "The type of the non-null inhabitants of this type"
+            }
+          },
+          "required": [
+            "type",
+            "underlying_type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "element_type": {
+              "$ref": "#/definitions/Type",
+              "description": "The type of the elements of the array"
+            },
+            "type": {
+              "const": "array",
+              "type": "string"
+            }
+          },
+          "required": [
+            "element_type",
+            "type"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "Types track the valid representations of values as JSON"
+    }
+  }
+}
