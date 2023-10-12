@@ -70,12 +70,3 @@ function mergeTableSchema(generatedTableSchema: TableSchema, existingTableSchema
     attributeSchema: attributeSchemas
   };
 }
-
-export function validateConfiguration(configuration: Configuration): ValidationError[] {
-  return []; // TODO
-}
-
-export type ValidationError = {
-  path: (string | number)[],
-  message: string
-}

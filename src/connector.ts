@@ -25,8 +25,8 @@ export const connector: Connector<Configuration, State> = {
     return await updateConfiguration(dynamoDbClient, configuration);
   },
 
-  validate_raw_configuration: function (configuration: Configuration): Promise<Configuration> {
-    throw new Error("Function not implemented.");
+  validate_raw_configuration: async function (configuration: Configuration): Promise<Configuration> {
+    return configuration;
   },
 
   try_init_state: async function (configuration: Configuration, metrics: unknown): Promise<State> {
@@ -86,9 +86,4 @@ function createDynamoDbClient(configuration: Configuration): DynamoDBClient {
     ...credentialsConfig,
     ...endpointConfig,
   });
-}
-
-type ValidationResult<TConfiguration> = {
-  schema: SchemaResponse,
-  resolved_configuration: TConfiguration
 }

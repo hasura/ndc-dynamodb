@@ -1,5 +1,5 @@
-import { DescribeTableCommand, DynamoDBClient, KeySchemaElement, ScalarAttributeType, paginateListTables } from "@aws-sdk/client-dynamodb";
-import { Type } from "@hasura/ndc-sdk-typescript";
+import { DescribeTableCommand, DynamoDBClient, DynamoDBServiceException, KeySchemaElement, ScalarAttributeType, paginateListTables } from "@aws-sdk/client-dynamodb";
+import { BadRequest, Type } from "@hasura/ndc-sdk-typescript";
 
 export type TableSchema = {
   tableName: string,
@@ -28,39 +28,51 @@ export type SecondaryIndexSchema = {
 }
 
 export async function getTables(dynamoDbClient: DynamoDBClient): Promise<TableSchema[]> {
-  const paginator = paginateListTables({client: dynamoDbClient}, {});
+  try {
+    const paginator = paginateListTables({client: dynamoDbClient}, {});
 
-  const tableNames: string[] = [];
-  for await (const page of paginator) {
-    tableNames.push(...page.TableNames ?? []);
+    const tableNames: string[] = [];
+    for await (const page of paginator) {
+      tableNames.push(...page.TableNames ?? []);
+    }
+
+    const tableSchemas: TableSchema[] = [];
+    for (const tableName of tableNames) {
+      const tableDescription = await dynamoDbClient.send(new DescribeTableCommand({TableName: tableName}));
+
+      const attributeSchema: AttributeSchema[] = (tableDescription.Table?.AttributeDefinitions ?? []).map(definition => ({
+        name: definition.AttributeName!,
+        dynamoType: definition.AttributeType as ScalarAttributeType,
+        schemaType: dynamoAttributeTypeToType(definition.AttributeType as ScalarAttributeType) // We don't wrap these in a nullable type because they are key attributes, so they will always exist
+      }));
+
+      tableSchemas.push({
+        tableName,
+        attributeSchema,
+        keySchema: getKeySchema(tableDescription.Table?.KeySchema ?? [], `table ${tableName}`),
+        globalSecondaryIndexes: tableDescription.Table?.GlobalSecondaryIndexes?.map(index => ({
+          indexName: index.IndexName!,
+          keySchema: getKeySchema(index.KeySchema ?? [], `table ${tableName}, global secondary index ${index.IndexName}`)
+        })) ?? [],
+        localSecondaryIndexes: tableDescription.Table?.LocalSecondaryIndexes?.map(index => ({
+          indexName: index.IndexName!,
+          keySchema: getKeySchema(index.KeySchema ?? [], `table ${tableName}, global secondary index ${index.IndexName}`)
+        })) ?? [],
+      });
+    }
+
+    return tableSchemas;
+  } catch (e) {
+    if (e && typeof e === "object" && 'code' in e && 'message' in e && e.code === "ECONNREFUSED") {
+      throw new BadRequest(`Unable to connect to DynamoDB`, { error: e.message })
+    } else if (e instanceof DynamoDBServiceException) {
+      throw new BadRequest(`Unable to introspect the tables in DynamoDB due to an error communicating with DynamoDB: ${e.message}`, { name: e.name, error: e.message })
+    } else if (e instanceof Error) {
+      throw new BadRequest(`Unable to introspect the tables in DynamoDB due to an error communicating with DynamoDB: ${e.message}`, { message: e.message })
+    } else {
+      throw new BadRequest(`Unable to introspect the tables in DynamoDB due to an unexpected error`, { error: e })
+    }
   }
-
-  const tableSchemas: TableSchema[] = [];
-  for (const tableName of tableNames) {
-    const tableDescription = await dynamoDbClient.send(new DescribeTableCommand({TableName: tableName}));
-
-    const attributeSchema: AttributeSchema[] = (tableDescription.Table?.AttributeDefinitions ?? []).map(definition => ({
-      name: definition.AttributeName!,
-      dynamoType: definition.AttributeType as ScalarAttributeType,
-      schemaType: dynamoAttributeTypeToType(definition.AttributeType as ScalarAttributeType) // We don't wrap these in a nullable type because they are key attributes, so they will always exist
-    }));
-
-    tableSchemas.push({
-      tableName,
-      attributeSchema,
-      keySchema: getKeySchema(tableDescription.Table?.KeySchema ?? [], `table ${tableName}`),
-      globalSecondaryIndexes: tableDescription.Table?.GlobalSecondaryIndexes?.map(index => ({
-        indexName: index.IndexName!,
-        keySchema: getKeySchema(index.KeySchema ?? [], `table ${tableName}, global secondary index ${index.IndexName}`)
-      })) ?? [],
-      localSecondaryIndexes: tableDescription.Table?.LocalSecondaryIndexes?.map(index => ({
-        indexName: index.IndexName!,
-        keySchema: getKeySchema(index.KeySchema ?? [], `table ${tableName}, global secondary index ${index.IndexName}`)
-      })) ?? [],
-    });
-  }
-
-  return tableSchemas;
 }
 
 function getKeySchema(keySchemaElements: KeySchemaElement[], indexDescription: string): KeySchema {
