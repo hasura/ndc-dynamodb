@@ -20,7 +20,17 @@ export type AttributeSchema = {
   schemaType?: Type,
 }
 
-export type DynamoAttributeType = "S" | "N" | "B" | "BOOL" | "M" | "L" | "SS" | "NS" | "BS";
+// Built-in DynamoDB types
+export type DynamoAttributeType
+  = "S" // String
+  | "N" // Number
+  | "B" // Binary
+  | "BOOL" // Boolean
+  | "M" // Map
+  | "L" // List
+  | "SS" // String Set
+  | "NS" // Number Set
+  | "BS"; // Binary Set
 
 export type SecondaryIndexSchema = {
   indexName: String,
