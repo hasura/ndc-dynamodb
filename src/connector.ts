@@ -3,12 +3,13 @@ import { JSONSchemaObject } from "@json-schema-tools/meta-schema";
 import { capabilities } from "./capabilities";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Configuration, configurationSchema, makeEmptyConfiguration, updateConfiguration } from "./configuration";
-import { createSchema } from "./schema-ndc";
-import { Ok } from "./result";
+import { ConnectorSchema, createSchema } from "./schema-ndc";
+import { Err, Ok } from "./result";
 
 
 type State = {
   dynamodbClient: DynamoDBClient,
+  schema: ConnectorSchema
 };
 
 export const connector: Connector<Configuration, State> = {
@@ -32,15 +33,25 @@ export const connector: Connector<Configuration, State> = {
   },
 
   try_init_state: async function (configuration: Configuration, metrics: unknown): Promise<State> {
+    // TODO: This shouldn't be in state, it should be in configuration, but we don't have the concept of
+    // a non-raw Configuration in the ts-sdk currently, so we're munging it into state for now
+    const result = createSchema(configuration.tables, configuration.objectTypes);
+    if (result instanceof Err) {
+      throw new BadRequest("Schema's busted, yo", result.error)
+    }
+
     return {
       dynamodbClient: createDynamoDbClient(configuration),
+      schema: result.data
     }
   },
 
   get_schema: async function (configuration: Configuration): Promise<SchemaResponse> {
+    // TODO: This should not be computed here, but we need a non-raw Configuration to exist in ts-sdk
+    // so that we can compute this in validate_raw_configuration instead
     const result = createSchema(configuration.tables, configuration.objectTypes);
     if (result instanceof Ok) {
-      return result.data;
+      return result.data.schemaResponse;
     } else {
       throw new BadRequest("Schema's busted, yo", result.error)
     }

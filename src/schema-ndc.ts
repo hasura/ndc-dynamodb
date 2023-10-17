@@ -4,7 +4,28 @@ import { ConfigurationPath, ConfigurationRangeError, InvalidConfigurationError, 
 import { Err, Ok, Result } from "./result";
 import { unreachable } from "./util";
 
-export function createSchema(tableSchema: TableSchema[], objectTypes: ObjectTypes): Result<SchemaResponse, InvalidConfigurationError> {
+export type ConnectorSchema = {
+  schemaResponse: SchemaResponse,
+  functions: {
+    [functionName: string]: FunctionDefinition
+  }
+}
+
+export type FunctionDefinition = ByKeysFunction | QueryFunction
+
+export type ByKeysFunction = {
+  type: "by_keys"
+  tableSchema: TableSchema
+  functionInfo: FunctionInfo
+}
+
+export type QueryFunction = {
+  type: "query"
+  tableSchema: TableSchema
+  functionInfo: FunctionInfo
+}
+
+export function createSchema(tableSchema: TableSchema[], objectTypes: ObjectTypes): Result<ConnectorSchema, InvalidConfigurationError> {
   return createTableRowTypes(tableSchema, objectTypes)
     .bind(([tableRowTypeNames, tableRowTypes]) =>
       Result.traverseAndCollectErrors(
@@ -12,17 +33,21 @@ export function createSchema(tableSchema: TableSchema[], objectTypes: ObjectType
           createByKeysFunctionForTable(table, tableIndex, tableRowTypeNames[table.tableName], { ...objectTypes, ...tableRowTypes })
         )
       )
-      .bind(generatedFunctionInfos => {
-        const functionInfos = combineGenerated(...generatedFunctionInfos);
-        const allObjectTypes = { ...objectTypes, ...tableRowTypes, ...functionInfos.newObjectTypes };
+      .bind(generatedFunctionDefinitions => {
+        const functionDefinitions = combineGenerated(...generatedFunctionDefinitions);
+        const functionInfos = functionDefinitions.generated.map(def => def.functionInfo);
+        const allObjectTypes = { ...objectTypes, ...tableRowTypes, ...functionDefinitions.newObjectTypes };
 
-        return validateTypeUsages(functionInfos.generated, allObjectTypes)
+        return validateTypeUsages(functionInfos, allObjectTypes)
           .bind(usedObjectTypes => new Ok({
-            functions: functionInfos.generated,
-            object_types: usedObjectTypes,
-            collections: [],
-            procedures: [],
-            scalar_types: scalarTypes
+            schemaResponse: {
+              functions: functionInfos,
+              object_types: usedObjectTypes,
+              collections: [],
+              procedures: [],
+              scalar_types: scalarTypes
+            },
+            functions: Object.fromEntries(functionDefinitions.generated.map(def => [def.functionInfo.name, def]))
           }));
       })
     )
@@ -142,7 +167,7 @@ function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: num
     });
 }
 
-function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex: number, tableRowTypeName: string, objectTypes: ObjectTypes): Result<Generated<FunctionInfo>, ConfigurationRangeError[]> {
+function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex: number, tableRowTypeName: string, objectTypes: ObjectTypes): Result<Generated<FunctionDefinition>, ConfigurationRangeError[]> {
   return createTablePkObjectType(tableSchema, tableSchemaIndex, objectTypes)
     .map(([tablePkObjectTypeName, tablePkObjectType]) => {
       const args: Record<string, ArgumentInfo> = {
@@ -166,16 +191,20 @@ function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex
 
       return {
         generated: {
-          name: `${tableSchema.tableName}_by_keys`,
-          description: `Get one or more rows from ${tableSchema.tableName} by primary key`,
-          arguments: args,
-          result_type: {
-            type: "array",
-            element_type: {
-              type: "named",
-              name: tableRowTypeName
-            }
-          },
+          type: "by_keys",
+          tableSchema: tableSchema,
+          functionInfo: {
+            name: `${tableSchema.tableName}_by_keys`,
+            description: `Get one or more rows from ${tableSchema.tableName} by primary key`,
+            arguments: args,
+            result_type: {
+              type: "array",
+              element_type: {
+                type: "named",
+                name: tableRowTypeName
+              }
+            },
+          }
         },
         newObjectTypes: {
           [tablePkObjectTypeName]: tablePkObjectType
