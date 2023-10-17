@@ -1,8 +1,10 @@
-import { CapabilitiesResponse, Connector, ExplainResponse, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse } from "@hasura/ndc-sdk-typescript";
+import { BadRequest, CapabilitiesResponse, Connector, ExplainResponse, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse } from "@hasura/ndc-sdk-typescript";
 import { JSONSchemaObject } from "@json-schema-tools/meta-schema";
 import { capabilities } from "./capabilities";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Configuration, configurationSchema, makeEmptyConfiguration, updateConfiguration } from "./configuration";
+import { createSchema } from "./schema-ndc";
+import { Ok } from "./result";
 
 
 type State = {
@@ -35,8 +37,13 @@ export const connector: Connector<Configuration, State> = {
     }
   },
 
-  get_schema: function (configuration: Configuration): Promise<SchemaResponse> {
-    throw new Error("Function not implemented.");
+  get_schema: async function (configuration: Configuration): Promise<SchemaResponse> {
+    const result = createSchema(configuration.tables, configuration.objectTypes);
+    if (result instanceof Ok) {
+      return result.data;
+    } else {
+      throw new BadRequest("Schema's busted, yo", result.error)
+    }
   },
   query: function (configuration: Configuration, state: State, request: QueryRequest): Promise<QueryResponse> {
     throw new Error("Function not implemented.");

@@ -16,6 +16,7 @@ export type KeySchema = {
 
 export type AttributeSchema = {
   name: string,
+  description?: string,
   dynamoType: DynamoAttributeType,
   schemaType?: Type,
 }
@@ -98,7 +99,7 @@ function getKeySchema(keySchemaElements: KeySchemaElement[], indexDescription: s
     };
 }
 
-enum ScalarType {
+export enum ScalarType {
   String = "String",
   Int = "Int",
   Float = "Float",
@@ -108,7 +109,7 @@ enum ScalarType {
   List = "List",
 }
 
-function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
+export function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
   switch (attributeType) {
     case "S":
       return {

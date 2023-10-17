@@ -1,9 +1,9 @@
 import { JSONSchemaObject } from "@json-schema-tools/meta-schema";
-import { TableSchema } from "./schema";
-import * as schema from "./schema";
+import { TableSchema } from "./schema-dynamo";
+import * as schema from "./schema-dynamo";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { ObjectType } from "@hasura/ndc-sdk-typescript";
-// configuration.schema.json can be regenerated from the Configuration type
+// configuration-schema.generated.json can be regenerated from the Configuration type
 // by running 'npm run regenerate-configuration-jsonschema'
 import configurationSchemaJson from "./configuration-schema.generated.json";
 
@@ -15,12 +15,28 @@ export type Configuration = {
   localDynamoDbEndpoint?: string,
   awsCredentials?: AwsCredentials,
   tables: TableSchema[],
-  objectTypes: ObjectType[],
+  objectTypes: ObjectTypes,
 };
+
+export type ObjectTypes = {
+  [objectTypeName: string]: ObjectType
+}
 
 export type AwsCredentials = {
   accessKeyId: string,
   secretAccessKey: string,
+}
+
+export type ConfigurationPath = (number | string)[]
+
+export type ConfigurationRangeError = {
+  path: ConfigurationPath,
+  message: string,
+}
+
+export type InvalidConfigurationError = {
+  type: "InvalidConfiguration",
+  ranges: ConfigurationRangeError[]
 }
 
 export function makeEmptyConfiguration(): Configuration {
@@ -28,7 +44,7 @@ export function makeEmptyConfiguration(): Configuration {
     version: CURRENT_VERSION,
     awsRegion: "us-west-1",
     tables: [],
-    objectTypes: [],
+    objectTypes: {},
   };
 }
 
