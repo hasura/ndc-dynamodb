@@ -1,5 +1,6 @@
 import { DescribeTableCommand, DynamoDBClient, DynamoDBServiceException, KeySchemaElement, ScalarAttributeType, paginateListTables } from "@aws-sdk/client-dynamodb";
 import { BadRequest, Type } from "@hasura/ndc-sdk-typescript";
+import { unreachable } from "./util";
 
 export type TableSchema = {
   tableName: string,
@@ -32,6 +33,8 @@ export type DynamoAttributeType
   | "SS" // String Set
   | "NS" // Number Set
   | "BS"; // Binary Set
+
+export const dynamoArrayTypes: DynamoAttributeType[] = ["L", "SS", "NS", "BS"];
 
 export type SecondaryIndexSchema = {
   indexName: String,
@@ -109,6 +112,27 @@ export enum ScalarType {
   List = "List",
 }
 
+export function scalarTypeToDynamoAttributeType(scalarType: ScalarType): DynamoAttributeType {
+  switch (scalarType) {
+    case ScalarType.String:
+      return "S";
+    case ScalarType.Int:
+      return "N";
+    case ScalarType.Float:
+      return "N";
+    case ScalarType.Boolean:
+      return "BOOL";
+    case ScalarType.Binary:
+      return "B";
+    case ScalarType.Map:
+      return "M";
+    case ScalarType.List:
+      return "L";
+    default:
+      return unreachable(scalarType);
+  }
+}
+
 export function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
   switch (attributeType) {
     case "S":
@@ -165,5 +189,7 @@ export function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): T
           name: ScalarType.Binary
         },
       };
+    default:
+      return unreachable(attributeType);
   }
 }

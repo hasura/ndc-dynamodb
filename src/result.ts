@@ -13,7 +13,7 @@ abstract class ResultBase<T, TError> {
     if (this instanceof Ok) {
       return new Ok(this.data);
     } else if (this instanceof Err) {
-      return new Err(this.error.map(fn))
+      return new Err(fn(this.error))
     } else {
       throw new Error("Unknown result subclass");
     }

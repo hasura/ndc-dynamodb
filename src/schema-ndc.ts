@@ -1,5 +1,5 @@
 import { ArgumentInfo, FunctionInfo, ObjectField, ObjectType, SchemaResponse, Type } from "@hasura/ndc-sdk-typescript";
-import { TableSchema, ScalarType, dynamoAttributeTypeToType, AttributeSchema } from "./schema-dynamo";
+import { TableSchema, ScalarType, dynamoAttributeTypeToType, AttributeSchema, DynamoAttributeType, dynamoArrayTypes, scalarTypeToDynamoAttributeType } from "./schema-dynamo";
 import { ConfigurationPath, ConfigurationRangeError, InvalidConfigurationError, ObjectTypes } from "./configuration";
 import { Err, Ok, Result } from "./result";
 import { unreachable } from "./util";
@@ -95,12 +95,12 @@ function createTableRowType(tableSchema: TableSchema, tableSchemaIndex: number, 
   return Result.traverseAndCollectErrors(
       tableSchema.attributeSchema
         .map((attributeSchema, attributeSchemaIndex) =>
-          attributeSchemaAsObjectField(attributeSchema, tableSchemaIndex, attributeSchemaIndex, objectTypes)
+          attributeSchemaAsObjectField(attributeSchema, false, tableSchemaIndex, attributeSchemaIndex, objectTypes)
         )
     )
     .map(rowFields => {
       const rowType: ObjectType = {
-        description: `A row in the ${tableSchema.tableName} table`,
+        description: `A row in the '${tableSchema.tableName}' table`,
         fields: Object.fromEntries(rowFields)
       }
 
@@ -108,15 +108,27 @@ function createTableRowType(tableSchema: TableSchema, tableSchemaIndex: number, 
     });
 }
 
-function attributeSchemaAsObjectField(attributeSchema: AttributeSchema, tableSchemaIndex: number, attributeSchemaIndex: number, objectTypes: ObjectTypes): Result<[string, ObjectField], ConfigurationRangeError[]> {
-  const attributeType = attributeSchema.schemaType ?? dynamoAttributeTypeToType(attributeSchema.dynamoType)
-  return validateUnderlyingType(attributeType, objectTypes, ["tables", tableSchemaIndex, "attributeSchema", attributeSchemaIndex, "schemaType"]).map(_ => {
-    const objectField: ObjectField = {
-      type: attributeType,
-      description: attributeSchema.description
-    };
-    return [attributeSchema.name, objectField];
-  });
+function dynamoAttributeTypeToNullableType(attributeType: DynamoAttributeType): Type {
+  return { type: "nullable", underlying_type: dynamoAttributeTypeToType(attributeType) }
+}
+
+function attributeSchemaAsObjectField(attributeSchema: AttributeSchema, isPrimaryKeyAttribute: boolean, tableSchemaIndex: number, attributeSchemaIndex: number, objectTypes: ObjectTypes): Result<[string, ObjectField], ConfigurationRangeError[]> {
+  const attributeType =
+    attributeSchema.schemaType
+    ?? (isPrimaryKeyAttribute
+          ? dynamoAttributeTypeToType(attributeSchema.dynamoType)
+          : dynamoAttributeTypeToNullableType(attributeSchema.dynamoType)
+        );
+
+  const schemaTypePath = ["tables", tableSchemaIndex, "attributeSchema", attributeSchemaIndex, "schemaType"];
+  return validateAttributeSchemaType(attributeType, schemaTypePath, attributeSchema.dynamoType, isPrimaryKeyAttribute, objectTypes)
+    .map(_ => {
+      const objectField: ObjectField = {
+        type: attributeType,
+        description: attributeSchema.description
+      };
+      return [attributeSchema.name, objectField];
+    });
 }
 
 function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: number, objectTypes: ObjectTypes): Result<[string, ObjectType], ConfigurationRangeError[]> {
@@ -132,8 +144,8 @@ function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: num
 
   const hashAttrIndex = tableSchema.attributeSchema.findIndex(attr => attr.name === tableSchema.keySchema.hashKeyAttributeName)
   const hashAttrField: Result<{[k: string]: ObjectField}, ConfigurationRangeError[]> =
-    hashAttrIndex !== undefined
-      ? attributeSchemaAsObjectField(tableSchema.attributeSchema[hashAttrIndex], tableSchemaIndex, hashAttrIndex, objectTypes)
+    hashAttrIndex !== -1
+      ? attributeSchemaAsObjectField(tableSchema.attributeSchema[hashAttrIndex], true, tableSchemaIndex, hashAttrIndex, objectTypes)
           .map(([key, value]) => ({[key]: value}))
       : new Err([{
           path: ["tables", tableSchemaIndex, "keySchema", "hashKeyAttributeName"],
@@ -145,8 +157,8 @@ function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: num
       ? new Ok({})
       : new Ok<number, ConfigurationRangeError[]>(tableSchema.attributeSchema.findIndex(attr => attr.name === tableSchema.keySchema.rangeKeyAttributeName))
         .bind(rangeAttrIndex =>
-          rangeAttrIndex !== undefined
-            ? attributeSchemaAsObjectField(tableSchema.attributeSchema[rangeAttrIndex], tableSchemaIndex, rangeAttrIndex, objectTypes)
+          rangeAttrIndex !== -1
+            ? attributeSchemaAsObjectField(tableSchema.attributeSchema[rangeAttrIndex], true, tableSchemaIndex, rangeAttrIndex, objectTypes)
                 .map(([key, value]) => ({[key]: value}))
             : new Err([{
                 path: ["tables", tableSchemaIndex, "keySchema", "rangeKeyAttributeName"],
@@ -172,6 +184,7 @@ function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex
     .map(([tablePkObjectTypeName, tablePkObjectType]) => {
       const args: Record<string, ArgumentInfo> = {
         keys: {
+          description: "The primary keys to look up the rows with",
           type: {
             type: "array",
             element_type: {
@@ -195,7 +208,7 @@ function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex
           tableSchema: tableSchema,
           functionInfo: {
             name: `${tableSchema.tableName}_by_keys`,
-            description: `Get one or more rows from ${tableSchema.tableName} by primary key`,
+            description: `Get one or more rows from the '${tableSchema.tableName}' table by primary key`,
             arguments: args,
             result_type: {
               type: "array",
@@ -223,7 +236,7 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
         ]
       )
       .flatMap<[string, ObjectType]>(usedType => {
-        const underlyingType = getUnderlyingType(usedType, []);
+        const underlyingType = getUnderlyingNamedType(usedType, []);
         return underlyingType.kind === "object"
           ? [[underlyingType.name, allObjectTypes[underlyingType.name]]]
           : []
@@ -244,7 +257,7 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
       objectTypesInFunctions
         .flatMap(([objectTypeName, objectType]) =>
           Object.entries(objectType.fields).map(([fieldName, objectField]) =>
-            validateUnderlyingType(objectField.type, allObjectTypes, ["objectTypes", objectTypeName, "fields", fieldName, "type"])
+            validateObjectFieldType(objectField.type, ["objectTypes", objectTypeName, "fields", fieldName, "type"], allObjectTypes)
           )
         )
     );
@@ -270,17 +283,19 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
     : new Err(errors);
 }
 
-type UnderlyingType = {
+type UnderlyingNamedType = (ScalarNamedType | ObjectNamedType) & { path: ConfigurationPath }
+
+type ScalarNamedType = {
   kind: "scalar",
-  name: ScalarType,
-  path: ConfigurationPath
-} | {
-  kind: "object",
-  name: string,
-  path: ConfigurationPath
+  name: ScalarType
 }
 
-function getUnderlyingType(type: Type, path: ConfigurationPath): UnderlyingType {
+type ObjectNamedType = {
+  kind: "object"
+  name: string,
+}
+
+function getUnderlyingNamedType(type: Type, typePath: ConfigurationPath): UnderlyingNamedType {
   switch (type.type) {
     case "named":
       switch (type.name) {
@@ -291,28 +306,110 @@ function getUnderlyingType(type: Type, path: ConfigurationPath): UnderlyingType 
         case ScalarType.Binary:
         case ScalarType.Map:
         case ScalarType.List:
-          return { kind: "scalar", name: type.name, path };
+          return { kind: "scalar", name: type.name, path: typePath };
         default:
-          return { kind: "object", name: type.name, path };
+          return { kind: "object", name: type.name, path: typePath };
       }
     case "nullable":
-      return getUnderlyingType(type.underlying_type, [...path, "underlying_type"]);
+      return getUnderlyingNamedType(type.underlying_type, [...typePath, "underlying_type"]);
     case "array":
-      return getUnderlyingType(type.element_type, [...path, "element_type"]);
+      return getUnderlyingNamedType(type.element_type, [...typePath, "element_type"]);
     default:
       return unreachable(type["type"]);
   }
 }
 
-function validateUnderlyingType(type: Type, objectTypes: ObjectTypes, errPath: ConfigurationPath): Result<UnderlyingType, ConfigurationRangeError[]> {
-  const underlyingType = getUnderlyingType(type, errPath);
-  if (underlyingType.kind === "object" && !(underlyingType.name in objectTypes)) {
+function validateObjectFieldType(objectFieldType: Type, objectFieldTypePath: ConfigurationPath, objectTypes: ObjectTypes): Result<UnderlyingNamedType, ConfigurationRangeError[]> {
+  return validateAndUnwrapNullableSchemaType(objectFieldType, objectFieldTypePath)
+    .bind(([nonNullableType, nonNullableTypePath]) => {
+      const underlyingType = getUnderlyingNamedType(nonNullableType, nonNullableTypePath);
+      return underlyingType.kind === "object"
+        ? validateNamedObjectType(underlyingType, underlyingType.path, objectTypes).map<UnderlyingNamedType>(_ => underlyingType)
+        : new Ok(underlyingType)
+    });
+}
+
+function validateNamedObjectType(objectNamedType: ObjectNamedType, typePath: ConfigurationPath, objectTypes: ObjectTypes): Result<undefined, ConfigurationRangeError[]> {
+  if (!(objectNamedType.name in objectTypes)) {
     return new Err([{
-      path: underlyingType.path,
-      message: `The named type '${underlyingType.name}' is neither a scalar type nor a declared object type`
+      path: typePath,
+      message: `The named type '${objectNamedType.name}' is neither a scalar type nor a declared object type`
     }]);
   }
-  return new Ok(underlyingType);
+  return new Ok(undefined);
+}
+
+function validateAttributeSchemaType(schemaType: Type, schemaTypePath: ConfigurationPath, attributeDynamoType: DynamoAttributeType, isPrimaryKeyAttribute: boolean, objectTypes: ObjectTypes): Result<Type, ConfigurationRangeError[]> {
+  if (schemaType.type === "nullable" && isPrimaryKeyAttribute) {
+    return new Err([{
+      path: schemaTypePath,
+      message: "Attributes used as hash or range keys cannot be be nullable"
+    }])
+  }
+  return validateAndUnwrapNullableSchemaType(schemaType, schemaTypePath)
+    .bind(([nonNullableType, nonNullableTypePath]) => {
+      if (nonNullableType.type === "array") {
+        if (dynamoArrayTypes.includes(attributeDynamoType) === false) {
+          return new Err([{
+            path: nonNullableTypePath,
+            message: `An array type cannot be used when the dynamoType of the attribute is not an array (one of: ${dynamoArrayTypes.join(",")})`
+          }]);
+        }
+        if (attributeDynamoType === "SS" && nonNullableType.element_type.type === "named" && nonNullableType.element_type.name !== ScalarType.String) {
+          return new Err([{
+            path: [...nonNullableTypePath, "element_type"],
+            message: "The element_type of the array type of a String Set (SS) attribute must be a String named type"
+          }]);
+        }
+        if (attributeDynamoType === "NS" && nonNullableType.element_type.type === "named" && nonNullableType.element_type.name !== ScalarType.Int && nonNullableType.element_type.name !== ScalarType.Float) {
+          return new Err([{
+            path: [...nonNullableTypePath, "element_type"],
+            message: "The element_type of the array type of a Number Set (NS) attribute must be either a Float or an Int named type"
+          }]);
+        }
+        if (attributeDynamoType === "BS" && nonNullableType.element_type.type === "named" && nonNullableType.element_type.name !== ScalarType.Binary) {
+          return new Err([{
+            path: [...nonNullableTypePath, "element_type"],
+            message: "The element_type of the array type of a Binary Set (BS) attribute must be a Binary named type"
+          }]);
+        }
+        return new Ok(schemaType);
+      } else { // Object and Scalar Named Types
+        const namedType = getUnderlyingNamedType(nonNullableType, nonNullableTypePath);
+        if (namedType.kind == "scalar") {
+          const expectedDynamoType = scalarTypeToDynamoAttributeType(namedType.name)
+          if (attributeDynamoType !== expectedDynamoType) {
+            return new Err([{
+              path: namedType.path,
+              message: `The scalar type '${namedType.name}' can only be used with attributes of dynamoType '${attributeDynamoType}'`
+            }]);
+          }
+          return new Ok(schemaType);
+        } else { // Object type
+          if (attributeDynamoType !== "M") {
+            return new Err([{
+              path: namedType.path,
+              message: `Object types can only be used with attributes that of dynamoType 'M' (Map)`
+            }]);
+          }
+          return validateNamedObjectType(namedType, namedType.path, objectTypes).map(_ => schemaType)
+        }
+      }
+    });
+}
+
+function validateAndUnwrapNullableSchemaType(schemaType: Type, schemaTypePath: ConfigurationPath): Result<[NonNullableType, ConfigurationPath], ConfigurationRangeError[]> {
+  if (schemaType.type !== "nullable")
+    return new Ok([schemaType, schemaTypePath]);
+
+  if (schemaType.underlying_type.type === "nullable") {
+    return new Err([{
+      path: [...schemaTypePath, "underlying_type"],
+      message: "The underlying type of a nullable type cannot be nullable"
+    }])
+  }
+
+  return new Ok([schemaType.underlying_type, [...schemaTypePath, "underlying_type"]]);
 }
 
 const scalarTypes = {
@@ -364,3 +461,5 @@ function combineGenerated<T>(...generateds: Generated<T>[]): Generated<T[]> {
     newObjectTypes: Object.assign({}, ...generateds.map(g => g.newObjectTypes))
   }
 }
+
+type NonNullableType = Exclude<Type, {type: "nullable"}>
