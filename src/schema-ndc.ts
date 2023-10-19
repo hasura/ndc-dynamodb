@@ -352,25 +352,25 @@ function validateAttributeSchemaType(schemaType: Type, schemaTypePath: Configura
         if (dynamoArrayTypes.includes(attributeDynamoType) === false) {
           return new Err([{
             path: nonNullableTypePath,
-            message: `An array type cannot be used when the dynamoType of the attribute is not an array (one of: ${dynamoArrayTypes.join(",")})`
+            message: `An array type cannot be used when the dynamoType of the attribute is not an array (valid array dynamoType values: ${dynamoArrayTypes.join(",")})`
           }]);
         }
         if (attributeDynamoType === "SS" && nonNullableType.element_type.type === "named" && nonNullableType.element_type.name !== ScalarType.String) {
           return new Err([{
             path: [...nonNullableTypePath, "element_type"],
-            message: "The element_type of the array type of a String Set (SS) attribute must be a String named type"
+            message: "The element_type of the array type of a String Set (SS) attribute must be the String named type"
           }]);
         }
         if (attributeDynamoType === "NS" && nonNullableType.element_type.type === "named" && nonNullableType.element_type.name !== ScalarType.Int && nonNullableType.element_type.name !== ScalarType.Float) {
           return new Err([{
             path: [...nonNullableTypePath, "element_type"],
-            message: "The element_type of the array type of a Number Set (NS) attribute must be either a Float or an Int named type"
+            message: "The element_type of the array type of a Number Set (NS) attribute must be either the Float or the Int named type"
           }]);
         }
         if (attributeDynamoType === "BS" && nonNullableType.element_type.type === "named" && nonNullableType.element_type.name !== ScalarType.Binary) {
           return new Err([{
             path: [...nonNullableTypePath, "element_type"],
-            message: "The element_type of the array type of a Binary Set (BS) attribute must be a Binary named type"
+            message: "The element_type of the array type of a Binary Set (BS) attribute must be the Binary named type"
           }]);
         }
         return new Ok(schemaType);
@@ -381,7 +381,7 @@ function validateAttributeSchemaType(schemaType: Type, schemaTypePath: Configura
           if (attributeDynamoType !== expectedDynamoType) {
             return new Err([{
               path: namedType.path,
-              message: `The scalar type '${namedType.name}' can only be used with attributes of dynamoType '${attributeDynamoType}'`
+              message: `The scalar named type '${namedType.name}' can only be used with attributes of dynamoType '${expectedDynamoType}'`
             }]);
           }
           return new Ok(schemaType);
