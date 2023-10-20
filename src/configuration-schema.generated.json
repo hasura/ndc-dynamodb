@@ -5,6 +5,9 @@
     "AttributeSchema": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "type": "string"
+        },
         "dynamoType": {
           "$ref": "#/definitions/DynamoAttributeType"
         },
@@ -50,10 +53,7 @@
           "type": "string"
         },
         "objectTypes": {
-          "items": {
-            "$ref": "#/definitions/ObjectType"
-          },
-          "type": "array"
+          "$ref": "#/definitions/ObjectTypes"
         },
         "tables": {
           "items": {
@@ -149,6 +149,12 @@
       "required": [
         "fields"
       ],
+      "type": "object"
+    },
+    "ObjectTypes": {
+      "additionalProperties": {
+        "$ref": "#/definitions/ObjectType"
+      },
       "type": "object"
     },
     "SecondaryIndexSchema": {

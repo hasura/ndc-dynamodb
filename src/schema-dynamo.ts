@@ -1,5 +1,6 @@
 import { DescribeTableCommand, DynamoDBClient, DynamoDBServiceException, KeySchemaElement, ScalarAttributeType, paginateListTables } from "@aws-sdk/client-dynamodb";
 import { BadRequest, Type } from "@hasura/ndc-sdk-typescript";
+import { unreachable } from "./util";
 
 export type TableSchema = {
   tableName: string,
@@ -16,6 +17,7 @@ export type KeySchema = {
 
 export type AttributeSchema = {
   name: string,
+  description?: string,
   dynamoType: DynamoAttributeType,
   schemaType?: Type,
 }
@@ -31,6 +33,8 @@ export type DynamoAttributeType
   | "SS" // String Set
   | "NS" // Number Set
   | "BS"; // Binary Set
+
+export const dynamoArrayTypes: DynamoAttributeType[] = ["L", "SS", "NS", "BS"];
 
 export type SecondaryIndexSchema = {
   indexName: String,
@@ -98,7 +102,7 @@ function getKeySchema(keySchemaElements: KeySchemaElement[], indexDescription: s
     };
 }
 
-enum ScalarType {
+export enum ScalarType {
   String = "String",
   Int = "Int",
   Float = "Float",
@@ -108,7 +112,28 @@ enum ScalarType {
   List = "List",
 }
 
-function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
+export function scalarTypeToDynamoAttributeType(scalarType: ScalarType): DynamoAttributeType {
+  switch (scalarType) {
+    case ScalarType.String:
+      return "S";
+    case ScalarType.Int:
+      return "N";
+    case ScalarType.Float:
+      return "N";
+    case ScalarType.Boolean:
+      return "BOOL";
+    case ScalarType.Binary:
+      return "B";
+    case ScalarType.Map:
+      return "M";
+    case ScalarType.List:
+      return "L";
+    default:
+      return unreachable(scalarType);
+  }
+}
+
+export function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
   switch (attributeType) {
     case "S":
       return {
@@ -164,5 +189,7 @@ function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
           name: ScalarType.Binary
         },
       };
+    default:
+      return unreachable(attributeType);
   }
 }
