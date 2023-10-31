@@ -3,5 +3,9 @@
   "compilerOptions": {
     "resolveJsonModule": true
   },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ],
   "files": ["node_modules/jest-extended/types/index.d.ts"]
 }

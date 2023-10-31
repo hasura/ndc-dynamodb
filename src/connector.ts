@@ -5,6 +5,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Configuration, configurationSchema, makeEmptyConfiguration, updateConfiguration } from "./configuration";
 import { ConnectorSchema, createSchema } from "./schema-ndc";
 import { Err, Ok } from "./result";
+import { performQuery } from "./query";
 
 
 type State = {
@@ -56,8 +57,8 @@ export const connector: Connector<Configuration, State> = {
       throw new BadRequest("Schema's busted, yo", result.error)
     }
   },
-  query: function (configuration: Configuration, state: State, request: QueryRequest): Promise<QueryResponse> {
-    throw new Error("Function not implemented.");
+  query: async function (configuration: Configuration, state: State, request: QueryRequest): Promise<QueryResponse> {
+    return await performQuery(request, state.schema, state.dynamodbClient);
   },
   explain: function (configuration: Configuration, state: State, request: QueryRequest): Promise<ExplainResponse> {
     throw new Error("Function not implemented.");

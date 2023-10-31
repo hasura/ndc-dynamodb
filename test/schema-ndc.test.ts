@@ -8,8 +8,11 @@ import { InvalidConfigurationError, ObjectTypes } from "../src/configuration";
 const consistentReadArgument: ArgumentInfo = {
   description: "The consistency of a read operation. If set to true, then a strongly consistent read is used; otherwise, an eventually consistent read is used.",
   type: {
-    type: "named",
-    name: ScalarType.Boolean
+    type: "nullable",
+    underlying_type: {
+      type: "named",
+      name: ScalarType.Boolean
+    }
   }
 }
 

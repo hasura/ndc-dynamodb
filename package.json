@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.427.0",
-    "@hasura/ndc-sdk-typescript": "^1.1.0"
+    "@hasura/ndc-sdk-typescript": "^1.1.0",
+    "@smithy/util-base64": "^2.0.0"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",
