@@ -48,7 +48,7 @@ export type DynamoAttributeType = DynamoType | "NULL"
 export const dynamoArrayTypes: DynamoType[] = ["L", "SS", "NS", "BS"];
 
 export type SecondaryIndexSchema = {
-  indexName: String,
+  indexName: string,
   keySchema: KeySchema,
 }
 
