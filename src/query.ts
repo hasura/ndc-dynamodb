@@ -133,9 +133,6 @@ function getByKeysFunctionArguments(queryRequest: QueryRequest, byKeysFnDef: ByK
   });
 
   const consistentReadArg = queryRequest.arguments[schemaConstants.byKeysFn.consistentReadArgName];
-  if (consistentReadArg === undefined) {
-    throw new BadRequest(`Could not find '${schemaConstants.byKeysFn.consistentReadArgName}' argument`);
-  }
   const consistentReadArgValue = resolveArgument(consistentReadArg);
   if (consistentReadArgValue !== null && typeof consistentReadArgValue !== "boolean") {
     throw new BadRequest(`The ${schemaConstants.byKeysFn.consistentReadArgName} argument value was not a nullable boolean`);
@@ -147,11 +144,15 @@ function getByKeysFunctionArguments(queryRequest: QueryRequest, byKeysFnDef: ByK
   }
 }
 
-function resolveArgument(arg: Argument): unknown {
-  switch (arg.type) {
-    case "literal": return arg.value;
-    case "variable": throw new NotSupported("Query variables are not supported");
-    default: return unreachable(arg["type"]);
+function resolveArgument(arg: Argument | undefined): unknown {
+  if (arg) {
+    switch (arg.type) {
+      case "literal": return arg.value;
+      case "variable": throw new NotSupported("Query variables are not supported");
+      default: return unreachable(arg["type"]);
+    }
+  } else {
+    return null;
   }
 }
 
