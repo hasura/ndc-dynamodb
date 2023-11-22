@@ -1,7 +1,12 @@
 {
   "extends": "@tsconfig/node18/tsconfig.json",
   "compilerOptions": {
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true
   },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ],
   "files": ["node_modules/jest-extended/types/index.d.ts"]
 }

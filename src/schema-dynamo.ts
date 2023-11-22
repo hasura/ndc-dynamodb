@@ -18,12 +18,17 @@ export type KeySchema = {
 export type AttributeSchema = {
   name: string,
   description?: string,
-  dynamoType: DynamoAttributeType,
+  dynamoType: DynamoType,
   schemaType?: Type,
 }
 
-// Built-in DynamoDB types
-export type DynamoAttributeType
+// Built-in DynamoDB types, excluding the explicit NULL type
+// We use this to capture the type of an attribute in the schema,
+// where it doesn't make sense for an attribute to be null in all
+// rows. So we capture the non-null type and nullability becomes
+// an optional extra that can be configured via the attribute's
+// NDC schemaType.
+export type DynamoType
   = "S" // String
   | "N" // Number
   | "B" // Binary
@@ -34,10 +39,16 @@ export type DynamoAttributeType
   | "NS" // Number Set
   | "BS"; // Binary Set
 
-export const dynamoArrayTypes: DynamoAttributeType[] = ["L", "SS", "NS", "BS"];
+// The type of a concrete instance of dynamo attribute, where the
+// particular instance can indeed be explicitly null.
+// This is only valid in the context of a particular row, not in
+// the context of the schema of the attribute across all rows
+export type DynamoAttributeType = DynamoType | "NULL"
+
+export const dynamoArrayTypes: DynamoType[] = ["L", "SS", "NS", "BS"];
 
 export type SecondaryIndexSchema = {
-  indexName: String,
+  indexName: string,
   keySchema: KeySchema,
 }
 
@@ -57,7 +68,7 @@ export async function getTables(dynamoDbClient: DynamoDBClient): Promise<TableSc
       const attributeSchema: AttributeSchema[] = (tableDescription.Table?.AttributeDefinitions ?? []).map(definition => ({
         name: definition.AttributeName!,
         dynamoType: definition.AttributeType as ScalarAttributeType,
-        schemaType: dynamoAttributeTypeToType(definition.AttributeType as ScalarAttributeType) // We don't wrap these in a nullable type because they are key attributes, so they will always exist
+        schemaType: dynamoTypeToType(definition.AttributeType as ScalarAttributeType) // We don't wrap these in a nullable type because they are key attributes, so they will always exist
       }));
 
       tableSchemas.push({
@@ -112,7 +123,7 @@ export enum ScalarType {
   List = "List",
 }
 
-export function scalarTypeToDynamoAttributeType(scalarType: ScalarType): DynamoAttributeType {
+export function scalarTypeToDynamoType(scalarType: ScalarType): DynamoType {
   switch (scalarType) {
     case ScalarType.String:
       return "S";
@@ -133,7 +144,32 @@ export function scalarTypeToDynamoAttributeType(scalarType: ScalarType): DynamoA
   }
 }
 
-export function dynamoAttributeTypeToType(attributeType: DynamoAttributeType): Type {
+export type ScalarNamedType = {
+  kind: "scalar",
+  name: ScalarType
+}
+
+export type ObjectNamedType = {
+  kind: "object"
+  name: string,
+}
+
+export function determineNamedTypeKind(namedType: Extract<Type, {type: "named"}>): ScalarNamedType | ObjectNamedType {
+  switch (namedType.name) {
+    case ScalarType.String:
+    case ScalarType.Int:
+    case ScalarType.Float:
+    case ScalarType.Boolean:
+    case ScalarType.Binary:
+    case ScalarType.Map:
+    case ScalarType.List:
+      return { kind: "scalar", name: namedType.name };
+    default:
+      return { kind: "object", name: namedType.name };
+  }
+}
+
+export function dynamoTypeToType(attributeType: DynamoType): Type {
   switch (attributeType) {
     case "S":
       return {

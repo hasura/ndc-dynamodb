@@ -9,7 +9,7 @@
           "type": "string"
         },
         "dynamoType": {
-          "$ref": "#/definitions/DynamoAttributeType"
+          "$ref": "#/definitions/DynamoType"
         },
         "name": {
           "type": "string"
@@ -73,7 +73,7 @@
       ],
       "type": "object"
     },
-    "DynamoAttributeType": {
+    "DynamoType": {
       "enum": [
         "S",
         "N",
@@ -161,18 +161,7 @@
       "additionalProperties": false,
       "properties": {
         "indexName": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "properties": {
-            "length": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "length"
-          ],
-          "type": "object"
+          "type": "string"
         },
         "keySchema": {
           "$ref": "#/definitions/KeySchema"

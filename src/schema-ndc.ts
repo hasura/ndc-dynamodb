@@ -1,8 +1,8 @@
-import { ArgumentInfo, FunctionInfo, ObjectField, ObjectType, SchemaResponse, Type } from "@hasura/ndc-sdk-typescript";
-import { TableSchema, ScalarType, dynamoAttributeTypeToType, AttributeSchema, DynamoAttributeType, dynamoArrayTypes, scalarTypeToDynamoAttributeType } from "./schema-dynamo";
+import { ArgumentInfo, FunctionInfo, ObjectField, ObjectType, Query, SchemaResponse, Type } from "@hasura/ndc-sdk-typescript";
+import { TableSchema, ScalarType, dynamoTypeToType, AttributeSchema, DynamoType, dynamoArrayTypes, scalarTypeToDynamoType, ScalarNamedType, ObjectNamedType, determineNamedTypeKind } from "./schema-dynamo";
 import { ConfigurationPath, ConfigurationRangeError, InvalidConfigurationError, ObjectTypes } from "./configuration";
 import { Err, Ok, Result } from "./result";
-import { unreachable } from "./util";
+import { findWithIndex, throwInternalServerError, unreachable } from "./util";
 
 export type ConnectorSchema = {
   schemaResponse: SchemaResponse,
@@ -17,6 +17,19 @@ export type ByKeysFunction = {
   type: "by_keys"
   tableSchema: TableSchema
   functionInfo: FunctionInfo
+  primaryKeySchema: PrimaryKeySchema
+  tableRowType: ObjectType
+}
+
+export type PrimaryKeySchema = {
+  hashKeySchema: KeySchema
+  rangeKeySchema: KeySchema | null
+}
+
+export type KeySchema = {
+  attributeName: string,
+  dynamoType: DynamoType
+  schemaType: Type
 }
 
 export type QueryFunction = {
@@ -25,13 +38,21 @@ export type QueryFunction = {
   functionInfo: FunctionInfo
 }
 
+export const schemaConstants = {
+  byKeysFn: {
+    keysArgName: "keys",
+    consistentReadArgName: "consistent_read",
+  }
+};
+
 export function createSchema(tableSchema: TableSchema[], objectTypes: ObjectTypes): Result<ConnectorSchema, InvalidConfigurationError> {
   return createTableRowTypes(tableSchema, objectTypes)
     .bind(([tableRowTypeNames, tableRowTypes]) =>
       Result.traverseAndCollectErrors(
-        tableSchema.map((table, tableIndex) =>
-          createByKeysFunctionForTable(table, tableIndex, tableRowTypeNames[table.tableName], { ...objectTypes, ...tableRowTypes })
-        )
+        tableSchema.map((table, tableIndex) => {
+          const tableRowTypeName = tableRowTypeNames[table.tableName] ?? throwInternalServerError(`Table row type name not found: ${table.tableName}`);
+          return createByKeysFunctionForTable(table, tableIndex, tableRowTypeName, { ...objectTypes, ...tableRowTypes });
+        })
       )
       .bind(generatedFunctionDefinitions => {
         const functionDefinitions = combineGenerated(...generatedFunctionDefinitions);
@@ -108,16 +129,16 @@ function createTableRowType(tableSchema: TableSchema, tableSchemaIndex: number, 
     });
 }
 
-function dynamoAttributeTypeToNullableType(attributeType: DynamoAttributeType): Type {
-  return { type: "nullable", underlying_type: dynamoAttributeTypeToType(attributeType) }
+function dynamoTypeToNullableType(attributeType: DynamoType): Type {
+  return { type: "nullable", underlying_type: dynamoTypeToType(attributeType) }
 }
 
 function attributeSchemaAsObjectField(attributeSchema: AttributeSchema, isPrimaryKeyAttribute: boolean, tableSchemaIndex: number, attributeSchemaIndex: number, objectTypes: ObjectTypes): Result<[string, ObjectField], ConfigurationRangeError[]> {
   const attributeType =
     attributeSchema.schemaType
     ?? (isPrimaryKeyAttribute
-          ? dynamoAttributeTypeToType(attributeSchema.dynamoType)
-          : dynamoAttributeTypeToNullableType(attributeSchema.dynamoType)
+          ? dynamoTypeToType(attributeSchema.dynamoType)
+          : dynamoTypeToNullableType(attributeSchema.dynamoType)
         );
 
   const schemaTypePath = ["tables", tableSchemaIndex, "attributeSchema", attributeSchemaIndex, "schemaType"];
@@ -131,7 +152,7 @@ function attributeSchemaAsObjectField(attributeSchema: AttributeSchema, isPrimar
     });
 }
 
-function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: number, objectTypes: ObjectTypes): Result<[string, ObjectType], ConfigurationRangeError[]> {
+function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: number, objectTypes: ObjectTypes): Result<[string, ObjectType, PrimaryKeySchema], ConfigurationRangeError[]> {
   const tablePkObjectTypeName = new Ok<string,ConfigurationRangeError[]>(`${tableSchema.tableName}_pk`)
     .bind<string>(tablePkObjectTypeName =>
       tablePkObjectTypeName in objectTypes
@@ -142,48 +163,60 @@ function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: num
         : new Ok(tablePkObjectTypeName)
     );
 
-  const hashAttrIndex = tableSchema.attributeSchema.findIndex(attr => attr.name === tableSchema.keySchema.hashKeyAttributeName)
-  const hashAttrField: Result<{[k: string]: ObjectField}, ConfigurationRangeError[]> =
-    hashAttrIndex !== -1
-      ? attributeSchemaAsObjectField(tableSchema.attributeSchema[hashAttrIndex], true, tableSchemaIndex, hashAttrIndex, objectTypes)
-          .map(([key, value]) => ({[key]: value}))
-      : new Err([{
-          path: ["tables", tableSchemaIndex, "keySchema", "hashKeyAttributeName"],
-          message: `Cannot find an attribute schema defined for the specified hash key attribute '${tableSchema.keySchema.hashKeyAttributeName}'`
-        }]);
+  const hashAttrField: Result<[{[k: string]: ObjectField}, KeySchema], ConfigurationRangeError[]> =
+    findWithIndex(tableSchema.attributeSchema, attr => attr.name === tableSchema.keySchema.hashKeyAttributeName)
+      .mapErr(_ => [{
+        path: ["tables", tableSchemaIndex, "keySchema", "hashKeyAttributeName"],
+        message: `Cannot find an attribute schema defined for the specified hash key attribute '${tableSchema.keySchema.hashKeyAttributeName}'`
+      }])
+      .bind(([hashAttrSchema, hashAttrIndex]) =>
+        attributeSchemaAsObjectField(hashAttrSchema, true, tableSchemaIndex, hashAttrIndex, objectTypes)
+          .map(([key, value]) => {
+            const hashAttrField = {[key]: value};
+            const hashKeySchema = { attributeName: tableSchema.attributeSchema[hashAttrIndex]!.name, schemaType: value.type, dynamoType: tableSchema.attributeSchema[hashAttrIndex]!.dynamoType };
+            return [hashAttrField, hashKeySchema];
+          })
+      );
 
-  const rangeAttrField: Result<{[k: string]: ObjectField}, ConfigurationRangeError[]> =
+  const rangeAttrField: Result<[{[k: string]: ObjectField}, KeySchema | null], ConfigurationRangeError[]> =
     tableSchema.keySchema.rangeKeyAttributeName === null
-      ? new Ok({})
-      : new Ok<number, ConfigurationRangeError[]>(tableSchema.attributeSchema.findIndex(attr => attr.name === tableSchema.keySchema.rangeKeyAttributeName))
-        .bind(rangeAttrIndex =>
-          rangeAttrIndex !== -1
-            ? attributeSchemaAsObjectField(tableSchema.attributeSchema[rangeAttrIndex], true, tableSchemaIndex, rangeAttrIndex, objectTypes)
-                .map(([key, value]) => ({[key]: value}))
-            : new Err([{
-                path: ["tables", tableSchemaIndex, "keySchema", "rangeKeyAttributeName"],
-                message: `Cannot find an attribute schema defined for the specified range key attribute '${tableSchema.keySchema.rangeKeyAttributeName}'`
-              }])
+      ? new Ok([{}, null])
+      : findWithIndex(tableSchema.attributeSchema, attr => attr.name === tableSchema.keySchema.rangeKeyAttributeName)
+        .mapErr(_ => [{
+          path: ["tables", tableSchemaIndex, "keySchema", "rangeKeyAttributeName"],
+          message: `Cannot find an attribute schema defined for the specified range key attribute '${tableSchema.keySchema.rangeKeyAttributeName}'`
+        }])
+        .bind(([rangeAttrSchema, rangeAttrIndex]) =>
+          attributeSchemaAsObjectField(rangeAttrSchema, true, tableSchemaIndex, rangeAttrIndex, objectTypes)
+            .map(([key, value]) => {
+              const rangeAttrField = {[key]: value};
+              const rangeKeySchema = { attributeName: rangeAttrSchema.name, schemaType: value.type, dynamoType: rangeAttrSchema.dynamoType };
+              return [rangeAttrField, rangeKeySchema];
+            })
         );
 
   return Result.collectErrors3(tablePkObjectTypeName, hashAttrField, rangeAttrField)
-    .map(([tablePkObjectTypeName, hashAttrField, rangeAttrField]) => {
+    .map(([tablePkObjectTypeName, [hashAttrField, hashKeySchema], [rangeAttrField, rangeKeySchema]]) => {
       const objectType: ObjectType = {
         description: `Values of the primary key for the '${tableSchema.tableName}' table`,
         fields: {
           ...hashAttrField,
           ...rangeAttrField,
         }
-      }
-      return [tablePkObjectTypeName, objectType];
+      };
+      const primaryKeySchema = {
+        hashKeySchema,
+        rangeKeySchema
+      };
+      return [tablePkObjectTypeName, objectType, primaryKeySchema];
     });
 }
 
 function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex: number, tableRowTypeName: string, objectTypes: ObjectTypes): Result<Generated<FunctionDefinition>, ConfigurationRangeError[]> {
   return createTablePkObjectType(tableSchema, tableSchemaIndex, objectTypes)
-    .map(([tablePkObjectTypeName, tablePkObjectType]) => {
+    .map(([tablePkObjectTypeName, tablePkObjectType, primaryKeySchema]) => {
       const args: Record<string, ArgumentInfo> = {
-        keys: {
+        [schemaConstants.byKeysFn.keysArgName]: {
           description: "The primary keys to look up the rows with",
           type: {
             type: "array",
@@ -193,11 +226,14 @@ function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex
             }
           }
         },
-        consistent_read: {
+        [schemaConstants.byKeysFn.consistentReadArgName]: {
           description: "The consistency of a read operation. If set to true, then a strongly consistent read is used; otherwise, an eventually consistent read is used.",
           type: {
-            type: "named",
-            name: ScalarType.Boolean
+            type: "nullable",
+            underlying_type: {
+              type: "named",
+              name: ScalarType.Boolean
+            }
           }
         }
       }
@@ -217,7 +253,9 @@ function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex
                 name: tableRowTypeName
               }
             },
-          }
+          },
+          primaryKeySchema,
+          tableRowType: objectTypes[tableRowTypeName] ?? throwInternalServerError(`Expected table row ObjectType ${tableRowTypeName} not found`),
         },
         newObjectTypes: {
           [tablePkObjectTypeName]: tablePkObjectType
@@ -238,7 +276,7 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
       .flatMap<[string, ObjectType]>(usedType => {
         const underlyingType = getUnderlyingNamedType(usedType, []);
         return underlyingType.kind === "object"
-          ? [[underlyingType.name, allObjectTypes[underlyingType.name]]]
+          ? [[underlyingType.name, allObjectTypes[underlyingType.name] ?? throwInternalServerError<ObjectType>(`Could not find object type '${underlyingType.name}'`)]]
           : []
         });
 
@@ -267,7 +305,7 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
       fieldTypeValidationResults.oks
         .flatMap<[string, ObjectType]>(underlyingFieldType =>
           underlyingFieldType.kind === "object"
-            ? [[underlyingFieldType.name, allObjectTypes[underlyingFieldType.name]]]
+            ? [[underlyingFieldType.name, (allObjectTypes[underlyingFieldType.name] ?? throwInternalServerError<ObjectType>(`Could not find object type '${underlyingFieldType.name}'`))]]
             : []
           );
 
@@ -285,31 +323,11 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
 
 type UnderlyingNamedType = (ScalarNamedType | ObjectNamedType) & { path: ConfigurationPath }
 
-type ScalarNamedType = {
-  kind: "scalar",
-  name: ScalarType
-}
-
-type ObjectNamedType = {
-  kind: "object"
-  name: string,
-}
-
 function getUnderlyingNamedType(type: Type, typePath: ConfigurationPath): UnderlyingNamedType {
   switch (type.type) {
     case "named":
-      switch (type.name) {
-        case ScalarType.String:
-        case ScalarType.Int:
-        case ScalarType.Float:
-        case ScalarType.Boolean:
-        case ScalarType.Binary:
-        case ScalarType.Map:
-        case ScalarType.List:
-          return { kind: "scalar", name: type.name, path: typePath };
-        default:
-          return { kind: "object", name: type.name, path: typePath };
-      }
+      const namedType = determineNamedTypeKind(type);
+      return { ...namedType, path: typePath };
     case "nullable":
       return getUnderlyingNamedType(type.underlying_type, [...typePath, "underlying_type"]);
     case "array":
@@ -339,7 +357,7 @@ function validateNamedObjectType(objectNamedType: ObjectNamedType, typePath: Con
   return new Ok(undefined);
 }
 
-function validateAttributeSchemaType(schemaType: Type, schemaTypePath: ConfigurationPath, attributeDynamoType: DynamoAttributeType, isPrimaryKeyAttribute: boolean, objectTypes: ObjectTypes): Result<Type, ConfigurationRangeError[]> {
+function validateAttributeSchemaType(schemaType: Type, schemaTypePath: ConfigurationPath, attributeDynamoType: DynamoType, isPrimaryKeyAttribute: boolean, objectTypes: ObjectTypes): Result<Type, ConfigurationRangeError[]> {
   if (schemaType.type === "nullable" && isPrimaryKeyAttribute) {
     return new Err([{
       path: schemaTypePath,
@@ -377,7 +395,7 @@ function validateAttributeSchemaType(schemaType: Type, schemaTypePath: Configura
       } else { // Object and Scalar Named Types
         const namedType = getUnderlyingNamedType(nonNullableType, nonNullableTypePath);
         if (namedType.kind == "scalar") {
-          const expectedDynamoType = scalarTypeToDynamoAttributeType(namedType.name)
+          const expectedDynamoType = scalarTypeToDynamoType(namedType.name)
           if (attributeDynamoType !== expectedDynamoType) {
             return new Err([{
               path: namedType.path,
@@ -462,4 +480,7 @@ function combineGenerated<T>(...generateds: Generated<T>[]): Generated<T[]> {
   }
 }
 
-type NonNullableType = Exclude<Type, {type: "nullable"}>
+export type NonNullableType = Exclude<Type, {type: "nullable"}>
+export type QueryFields = NonNullable<Query["fields"]>
+// TODO: Remove once we've updated to latest typescript SDK
+export type RowFieldValue = unknown;
