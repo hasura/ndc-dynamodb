@@ -63,12 +63,6 @@ describe("by_keys function", () => {
 
     const schema = expectOk(createSchema([tableSchema], {}));
 
-    const expectedFunctionDef: FunctionDefinition = {
-      type: "by_keys",
-      tableSchema: tableSchema,
-      functionInfo: artistsFunctionInfo,
-    }
-
     const expectedObjectTypes: ObjectTypes = {
       Artists_pk: {
         description: "Values of the primary key for the 'Artists' table",
@@ -88,6 +82,21 @@ describe("by_keys function", () => {
           }
         }
       }
+    }
+
+    const expectedFunctionDef: FunctionDefinition = {
+      type: "by_keys",
+      tableSchema: tableSchema,
+      functionInfo: artistsFunctionInfo,
+      primaryKeySchema: {
+        hashKeySchema: {
+          attributeName: "ArtistName",
+          dynamoType: "S",
+          schemaType: { type: "named", name: "String" }
+        },
+        rangeKeySchema: null
+      },
+      tableRowType: expectedObjectTypes["Artists_row"]!,
     }
 
     expect(schema.functions).toHaveProperty("Artists_by_keys");
@@ -122,12 +131,6 @@ describe("by_keys function", () => {
 
     const schema = expectOk(createSchema([tableSchema], {}));
 
-    const expectedFunctionDef: FunctionDefinition = {
-      type: "by_keys",
-      tableSchema: tableSchema,
-      functionInfo: artistsFunctionInfo,
-    };
-
     const expectedObjectTypes: ObjectTypes = {
       Artists_pk: {
         description: "Values of the primary key for the 'Artists' table",
@@ -156,6 +159,25 @@ describe("by_keys function", () => {
         }
       }
     }
+
+    const expectedFunctionDef: FunctionDefinition = {
+      type: "by_keys",
+      tableSchema: tableSchema,
+      functionInfo: artistsFunctionInfo,
+      primaryKeySchema: {
+        hashKeySchema: {
+          attributeName: "ArtistName",
+          dynamoType: "S",
+          schemaType: { type: "named", name: "String" }
+        },
+        rangeKeySchema: {
+          attributeName: "AlbumTitle",
+          dynamoType: "S",
+          schemaType: { type: "named", name: "String" }
+        }
+      },
+      tableRowType: expectedObjectTypes["Artists_row"]!,
+    };
 
     expect(schema.functions).toHaveProperty("Artists_by_keys");
     expect(schema.functions["Artists_by_keys"]).toEqual(expectedFunctionDef);
@@ -229,12 +251,6 @@ describe("by_keys function", () => {
 
     const schema = expectOk(createSchema([tableSchema], customObjectTypes));
 
-    const expectedFunctionDef: FunctionDefinition = {
-      type: "by_keys",
-      tableSchema: tableSchema,
-      functionInfo: artistsFunctionInfo,
-    };
-
     const expectedObjectTypes: ObjectTypes = {
       ...customObjectTypes,
       Artists_pk: {
@@ -276,6 +292,25 @@ describe("by_keys function", () => {
         }
       }
     }
+
+    const expectedFunctionDef: FunctionDefinition = {
+      type: "by_keys",
+      tableSchema: tableSchema,
+      functionInfo: artistsFunctionInfo,
+      primaryKeySchema: {
+        hashKeySchema: {
+          attributeName: "ArtistName",
+          dynamoType: "S",
+          schemaType: { type: "named", name: "String" }
+        },
+        rangeKeySchema: {
+          attributeName: "AlbumTitle",
+          dynamoType: "S",
+          schemaType: { type: "named", name: "String" }
+        }
+      },
+      tableRowType: expectedObjectTypes["Artists_row"]!,
+    };
 
     expect(schema.functions).toHaveProperty("Artists_by_keys");
     expect(schema.functions["Artists_by_keys"]).toEqual(expectedFunctionDef);
