@@ -2,7 +2,7 @@ import { ArgumentInfo, FunctionInfo, ObjectField, ObjectType, Query, SchemaRespo
 import { TableSchema, ScalarType, dynamoTypeToType, AttributeSchema, DynamoType, dynamoArrayTypes, scalarTypeToDynamoType, ScalarNamedType, ObjectNamedType, determineNamedTypeKind } from "./schema-dynamo";
 import { ConfigurationPath, ConfigurationRangeError, InvalidConfigurationError, ObjectTypes } from "./configuration";
 import { Err, Ok, Result } from "./result";
-import { unreachable } from "./util";
+import { findWithIndex, throwInternalServerError, unreachable } from "./util";
 
 export type ConnectorSchema = {
   schemaResponse: SchemaResponse,
@@ -49,9 +49,10 @@ export function createSchema(tableSchema: TableSchema[], objectTypes: ObjectType
   return createTableRowTypes(tableSchema, objectTypes)
     .bind(([tableRowTypeNames, tableRowTypes]) =>
       Result.traverseAndCollectErrors(
-        tableSchema.map((table, tableIndex) =>
-          createByKeysFunctionForTable(table, tableIndex, tableRowTypeNames[table.tableName], { ...objectTypes, ...tableRowTypes })
-        )
+        tableSchema.map((table, tableIndex) => {
+          const tableRowTypeName = tableRowTypeNames[table.tableName] ?? throwInternalServerError(`Table row type name not found: ${table.tableName}`);
+          return createByKeysFunctionForTable(table, tableIndex, tableRowTypeName, { ...objectTypes, ...tableRowTypes });
+        })
       )
       .bind(generatedFunctionDefinitions => {
         const functionDefinitions = combineGenerated(...generatedFunctionDefinitions);
@@ -162,36 +163,36 @@ function createTablePkObjectType(tableSchema: TableSchema, tableSchemaIndex: num
         : new Ok(tablePkObjectTypeName)
     );
 
-  const hashAttrIndex = tableSchema.attributeSchema.findIndex(attr => attr.name === tableSchema.keySchema.hashKeyAttributeName)
   const hashAttrField: Result<[{[k: string]: ObjectField}, KeySchema], ConfigurationRangeError[]> =
-    hashAttrIndex !== -1
-      ? attributeSchemaAsObjectField(tableSchema.attributeSchema[hashAttrIndex], true, tableSchemaIndex, hashAttrIndex, objectTypes)
+    findWithIndex(tableSchema.attributeSchema, attr => attr.name === tableSchema.keySchema.hashKeyAttributeName)
+      .mapErr(_ => [{
+        path: ["tables", tableSchemaIndex, "keySchema", "hashKeyAttributeName"],
+        message: `Cannot find an attribute schema defined for the specified hash key attribute '${tableSchema.keySchema.hashKeyAttributeName}'`
+      }])
+      .bind(([hashAttrSchema, hashAttrIndex]) =>
+        attributeSchemaAsObjectField(hashAttrSchema, true, tableSchemaIndex, hashAttrIndex, objectTypes)
           .map(([key, value]) => {
             const hashAttrField = {[key]: value};
-            const hashKeySchema = { attributeName: tableSchema.attributeSchema[hashAttrIndex].name, schemaType: value.type, dynamoType: tableSchema.attributeSchema[hashAttrIndex].dynamoType };
+            const hashKeySchema = { attributeName: tableSchema.attributeSchema[hashAttrIndex]!.name, schemaType: value.type, dynamoType: tableSchema.attributeSchema[hashAttrIndex]!.dynamoType };
             return [hashAttrField, hashKeySchema];
           })
-      : new Err([{
-          path: ["tables", tableSchemaIndex, "keySchema", "hashKeyAttributeName"],
-          message: `Cannot find an attribute schema defined for the specified hash key attribute '${tableSchema.keySchema.hashKeyAttributeName}'`
-        }]);
+      );
 
   const rangeAttrField: Result<[{[k: string]: ObjectField}, KeySchema | null], ConfigurationRangeError[]> =
     tableSchema.keySchema.rangeKeyAttributeName === null
       ? new Ok([{}, null])
-      : new Ok<number, ConfigurationRangeError[]>(tableSchema.attributeSchema.findIndex(attr => attr.name === tableSchema.keySchema.rangeKeyAttributeName))
-        .bind(rangeAttrIndex =>
-          rangeAttrIndex !== -1
-            ? attributeSchemaAsObjectField(tableSchema.attributeSchema[rangeAttrIndex], true, tableSchemaIndex, rangeAttrIndex, objectTypes)
-                .map(([key, value]) => {
-                  const rangeAttrField = {[key]: value};
-                  const rangeKeySchema = { attributeName: tableSchema.attributeSchema[rangeAttrIndex].name, schemaType: value.type, dynamoType: tableSchema.attributeSchema[rangeAttrIndex].dynamoType };
-                  return [rangeAttrField, rangeKeySchema];
-                })
-            : new Err([{
-                path: ["tables", tableSchemaIndex, "keySchema", "rangeKeyAttributeName"],
-                message: `Cannot find an attribute schema defined for the specified range key attribute '${tableSchema.keySchema.rangeKeyAttributeName}'`
-              }])
+      : findWithIndex(tableSchema.attributeSchema, attr => attr.name === tableSchema.keySchema.rangeKeyAttributeName)
+        .mapErr(_ => [{
+          path: ["tables", tableSchemaIndex, "keySchema", "rangeKeyAttributeName"],
+          message: `Cannot find an attribute schema defined for the specified range key attribute '${tableSchema.keySchema.rangeKeyAttributeName}'`
+        }])
+        .bind(([rangeAttrSchema, rangeAttrIndex]) =>
+          attributeSchemaAsObjectField(rangeAttrSchema, true, tableSchemaIndex, rangeAttrIndex, objectTypes)
+            .map(([key, value]) => {
+              const rangeAttrField = {[key]: value};
+              const rangeKeySchema = { attributeName: rangeAttrSchema.name, schemaType: value.type, dynamoType: rangeAttrSchema.dynamoType };
+              return [rangeAttrField, rangeKeySchema];
+            })
         );
 
   return Result.collectErrors3(tablePkObjectTypeName, hashAttrField, rangeAttrField)
@@ -254,7 +255,7 @@ function createByKeysFunctionForTable(tableSchema: TableSchema, tableSchemaIndex
             },
           },
           primaryKeySchema,
-          tableRowType: objectTypes[tableRowTypeName],
+          tableRowType: objectTypes[tableRowTypeName] ?? throwInternalServerError(`Expected table row ObjectType ${tableRowTypeName} not found`),
         },
         newObjectTypes: {
           [tablePkObjectTypeName]: tablePkObjectType
@@ -275,7 +276,7 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
       .flatMap<[string, ObjectType]>(usedType => {
         const underlyingType = getUnderlyingNamedType(usedType, []);
         return underlyingType.kind === "object"
-          ? [[underlyingType.name, allObjectTypes[underlyingType.name]]]
+          ? [[underlyingType.name, allObjectTypes[underlyingType.name] ?? throwInternalServerError<ObjectType>(`Could not find object type '${underlyingType.name}'`)]]
           : []
         });
 
@@ -304,7 +305,7 @@ function validateTypeUsages(functionInfos: FunctionInfo[], allObjectTypes: Objec
       fieldTypeValidationResults.oks
         .flatMap<[string, ObjectType]>(underlyingFieldType =>
           underlyingFieldType.kind === "object"
-            ? [[underlyingFieldType.name, allObjectTypes[underlyingFieldType.name]]]
+            ? [[underlyingFieldType.name, (allObjectTypes[underlyingFieldType.name] ?? throwInternalServerError<ObjectType>(`Could not find object type '${underlyingFieldType.name}'`))]]
             : []
           );
 

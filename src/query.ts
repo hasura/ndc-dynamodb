@@ -1,6 +1,6 @@
 import { Argument, BadRequest, Field, InternalServerError, NotSupported, ObjectType, QueryRequest, QueryResponse, Type } from "@hasura/ndc-sdk-typescript"
 import { ByKeysFunction, ConnectorSchema, QueryFields, QueryFunction, RowFieldValue, schemaConstants } from "./schema-ndc";
-import { ifNotNull, isArray, mapObjectValues, unreachable } from "./util";
+import { ifNotNull, isArray, mapObjectValues, throwBadRequest, unreachable } from "./util";
 import { AttributeValue, BatchGetItemCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoAttributeType, DynamoType, ObjectNamedType, ScalarNamedType, ScalarType, determineNamedTypeKind } from "./schema-dynamo";
 import { fromBase64, toBase64 } from "@smithy/util-base64";
@@ -338,7 +338,8 @@ function mkNdcResponseRowFromDynamoResponseRow(dynamoResponseRow: Record<string,
       case "column":
         const attributeName = field.column;
         const attributeValue = dynamoResponseRow[attributeName] ?? { NULL: true };
-        return resolveTypedValueFromAttributeValue(attributeValue, tableRowType.fields[attributeName].type, objectTypes);
+        const attributeSchemaType = tableRowType.fields[attributeName]?.type ?? throwBadRequest(`Attribute '${attributeName}' not declared in table schema`);
+        return resolveTypedValueFromAttributeValue(attributeValue, attributeSchemaType, objectTypes);
       case "relationship":
         throw new NotSupported("Relationship fields are not supported");
       default:
