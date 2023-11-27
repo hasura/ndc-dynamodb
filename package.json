@@ -8,11 +8,11 @@
     "start-no-typecheck": "ts-node --transpileOnly ./src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "regenerate-configuration-jsonschema": "ts-json-schema-generator --tsconfig tsconfig.json --path src/configuration.ts --type Configuration -o src/configuration-schema.generated.json"
+    "regenerate-configuration-jsonschema": "ts-json-schema-generator --tsconfig tsconfig.json --path src/configuration.ts --type RawConfiguration -o src/raw-configuration-schema.generated.json"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.427.0",
-    "@hasura/ndc-sdk-typescript": "^1.1.0",
+    "@hasura/ndc-sdk-typescript": "1.2.4",
     "@smithy/util-base64": "^2.0.0"
   },
   "devDependencies": {

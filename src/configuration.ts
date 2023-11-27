@@ -5,11 +5,11 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { ObjectType } from "@hasura/ndc-sdk-typescript";
 // configuration-schema.generated.json can be regenerated from the Configuration type
 // by running 'npm run regenerate-configuration-jsonschema'
-import configurationSchemaJson from "./configuration-schema.generated.json";
+import rawConfigurationSchemaJson from "./configuration-schema.generated.json";
 
 export const CURRENT_VERSION = 1;
 
-export type Configuration = {
+export type RawConfiguration = {
   version: number,
   awsRegion: string,
   localDynamoDbEndpoint?: string,
@@ -39,7 +39,7 @@ export type InvalidConfigurationError = {
   ranges: ConfigurationRangeError[]
 }
 
-export function makeEmptyConfiguration(): Configuration {
+export function makeEmptyConfiguration(): RawConfiguration {
   return {
     version: CURRENT_VERSION,
     awsRegion: "us-west-1",
@@ -48,9 +48,9 @@ export function makeEmptyConfiguration(): Configuration {
   };
 }
 
-export const configurationSchema: JSONSchemaObject = configurationSchemaJson;
+export const rawConfigurationSchema: JSONSchemaObject = rawConfigurationSchemaJson;
 
-export async function updateConfiguration(dynamoDbClient: DynamoDBClient, existingConfig: Configuration): Promise<Configuration> {
+export async function updateConfiguration(dynamoDbClient: DynamoDBClient, existingConfig: RawConfiguration): Promise<RawConfiguration> {
   const generatedTableSchemas = await schema.getTables(dynamoDbClient);
 
   const tables = generatedTableSchemas.map(generatedTableSchema => {
