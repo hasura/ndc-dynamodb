@@ -1,0 +1,562 @@
+kind: DataConnector
+version: v1
+definition:
+  name: dynamodb_forum
+  url:
+    singleUrl: http://localhost:8100
+  schema:
+    functions:
+      - name: Forum_by_keys
+        description: Get one or more rows from the 'Forum' table by primary key
+        arguments:
+          keys:
+            description: The primary keys to look up the rows with
+            type:
+              type: array
+              element_type:
+                type: named
+                name: Forum_pk
+          consistent_read:
+            description: The consistency of a read operation. If set to true, then a
+              strongly consistent read is used; otherwise, an eventually
+              consistent read is used.
+            type:
+              type: nullable
+              underlying_type:
+                type: named
+                name: Boolean
+        result_type:
+          type: array
+          element_type:
+            type: named
+            name: Forum_row
+      - name: Thread_by_keys
+        description: Get one or more rows from the 'Thread' table by primary key
+        arguments:
+          keys:
+            description: The primary keys to look up the rows with
+            type:
+              type: array
+              element_type:
+                type: named
+                name: Thread_pk
+          consistent_read:
+            description: The consistency of a read operation. If set to true, then a
+              strongly consistent read is used; otherwise, an eventually
+              consistent read is used.
+            type:
+              type: nullable
+              underlying_type:
+                type: named
+                name: Boolean
+        result_type:
+          type: array
+          element_type:
+            type: named
+            name: Thread_row
+      - name: Reply_by_keys
+        description: Get one or more rows from the 'Reply' table by primary key
+        arguments:
+          keys:
+            description: The primary keys to look up the rows with
+            type:
+              type: array
+              element_type:
+                type: named
+                name: Reply_pk
+          consistent_read:
+            description: The consistency of a read operation. If set to true, then a
+              strongly consistent read is used; otherwise, an eventually
+              consistent read is used.
+            type:
+              type: nullable
+              underlying_type:
+                type: named
+                name: Boolean
+        result_type:
+          type: array
+          element_type:
+            type: named
+            name: Reply_row
+    object_types:
+      Forum_pk:
+        description: Values of the primary key for the 'Forum' table
+        fields:
+          ForumName:
+            type:
+              name: String
+              type: named
+      Forum_row:
+        description: A row in the 'Forum' table
+        fields:
+          ForumName:
+            type:
+              name: String
+              type: named
+          Category:
+            type:
+              name: String
+              type: named
+          Messages:
+            type:
+              name: Int
+              type: named
+          Threads:
+            type:
+              name: Int
+              type: named
+          Views:
+            type:
+              name: Int
+              type: named
+      Thread_pk:
+        description: Values of the primary key for the 'Thread' table
+        fields:
+          ForumName:
+            type:
+              name: String
+              type: named
+          Subject:
+            type:
+              name: String
+              type: named
+      Thread_row:
+        description: A row in the 'Thread' table
+        fields:
+          ForumName:
+            type:
+              name: String
+              type: named
+          Subject:
+            type:
+              name: String
+              type: named
+          LastPostedBy:
+            type:
+              name: String
+              type: named
+          Message:
+            type:
+              name: String
+              type: named
+          Replies:
+            type:
+              name: Int
+              type: named
+          Views:
+            type:
+              name: Int
+              type: named
+      Reply_pk:
+        description: Values of the primary key for the 'Reply' table
+        fields:
+          Id:
+            type:
+              name: String
+              type: named
+          ReplyDateTime:
+            type:
+              name: String
+              type: named
+      Reply_row:
+        description: A row in the 'Reply' table
+        fields:
+          Id:
+            type:
+              name: String
+              type: named
+          Message:
+            type:
+              name: String
+              type: named
+          PostedBy:
+            type:
+              name: String
+              type: named
+          ReplyDateTime:
+            type:
+              name: String
+              type: named
+    collections: []
+    procedures: []
+    scalar_types:
+      String:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Int:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Float:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Boolean:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Binary:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Map:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      List:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+
+---
+kind: Command
+version: v1
+definition:
+  name: Forum_by_keys
+  arguments:
+    - name: keys
+      type: "[Forum_pk!]!"
+    - name: consistent_read
+      type: Boolean
+  outputType: "[Forum_row!]!"
+  source:
+    dataConnectorName: dynamodb_forum
+    dataConnectorCommand:
+      function: Forum_by_keys
+  graphql:
+    rootFieldKind: Query
+    rootFieldName: forumByKeys
+
+---
+kind: CommandPermissions
+version: v1
+definition:
+  commandName: Forum_by_keys
+  permissions:
+    - role: admin
+      allowExecution: true
+
+---
+kind: Command
+version: v1
+definition:
+  name: Thread_by_keys
+  arguments:
+    - name: keys
+      type: "[Thread_pk!]!"
+    - name: consistent_read
+      type: Boolean
+  outputType: "[Thread_row!]!"
+  source:
+    dataConnectorName: dynamodb_forum
+    dataConnectorCommand:
+      function: Thread_by_keys
+  graphql:
+    rootFieldKind: Query
+    rootFieldName: threadByKeys
+
+---
+kind: CommandPermissions
+version: v1
+definition:
+  commandName: Thread_by_keys
+  permissions:
+    - role: admin
+      allowExecution: true
+
+---
+kind: Command
+version: v1
+definition:
+  name: Reply_by_keys
+  arguments:
+    - name: keys
+      type: "[Reply_pk!]!"
+    - name: consistent_read
+      type: Boolean
+  outputType: "[Reply_row!]!"
+  source:
+    dataConnectorName: dynamodb_forum
+    dataConnectorCommand:
+      function: Reply_by_keys
+  graphql:
+    rootFieldKind: Query
+    rootFieldName: replyByKeys
+
+---
+kind: CommandPermissions
+version: v1
+definition:
+  commandName: Reply_by_keys
+  permissions:
+    - role: admin
+      allowExecution: true
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Forum_row
+  fields:
+    - name: ForumName
+      type: String
+    - name: Category
+      type: String
+    - name: Messages
+      type: Int
+    - name: Threads
+      type: Int
+    - name: Views
+      type: Int
+  graphql:
+    typeName: forumRow
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Forum_row
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - ForumName
+          - Category
+          - Messages
+          - Threads
+          - Views
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Forum_pk
+  fields:
+    - name: ForumName
+      type: String
+  graphql:
+    inputTypeName: forumPk
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Forum_pk
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - ForumName
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Thread_row
+  fields:
+    - name: ForumName
+      type: String
+    - name: Subject
+      type: String
+    - name: LastPostedBy
+      type: String
+    - name: Message
+      type: String
+    - name: Replies
+      type: Int
+    - name: Views
+      type: Int
+  graphql:
+    typeName: threadRow
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Thread_row
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - ForumName
+          - Subject
+          - LastPostedBy
+          - Message
+          - Replies
+          - Views
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Thread_pk
+  fields:
+    - name: ForumName
+      type: String
+    - name: Subject
+      type: String
+  graphql:
+    inputTypeName: threadPk
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Thread_pk
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - ForumName
+          - Subject
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Reply_row
+  fields:
+    - name: Id
+      type: String
+    - name: Message
+      type: String
+    - name: PostedBy
+      type: String
+    - name: ReplyDateTime
+      type: String
+  graphql:
+    typeName: replyRow
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Reply_row
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - Id
+          - Message
+          - PostedBy
+          - ReplyDateTime
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Reply_pk
+  fields:
+    - name: Id
+      type: String
+    - name: ReplyDateTime
+      type: String
+  graphql:
+    inputTypeName: replyPk
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Reply_pk
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - Id
+          - ReplyDateTime
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: String
+  representation: String
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumStringComparisonExp
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: Int
+  representation: Int
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumIntComparisonExp
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: Float
+  representation: Float
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumFloatComparisonExp
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: Boolean
+  representation: Boolean
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumBooleanComparisonExp
+
+---
+kind: ScalarType
+version: v1
+definition:
+  name: Binary
+  graphql:
+    typeName: binary
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: Binary
+  representation: Binary
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumBinaryComparisonExp
+
+---
+kind: ScalarType
+version: v1
+definition:
+  name: Map
+  graphql:
+    typeName: map
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: Map
+  representation: Map
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumMapComparisonExp
+
+---
+kind: ScalarType
+version: v1
+definition:
+  name: List
+  graphql:
+    typeName: list
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamodb_forum
+  dataConnectorScalarType: List
+  representation: List
+  graphql:
+    comparisonExpressionTypeName: dynamodbForumListComparisonExp

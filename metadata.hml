@@ -1,0 +1,295 @@
+kind: DataConnector
+version: v1
+definition:
+  name: dynamo
+  url:
+    singleUrl: http://localhost:8100
+  schema:
+    functions:
+      - name: MusicCollection_by_keys
+        description: Get one or more rows from the 'MusicCollection' table by primary key
+        arguments:
+          keys:
+            description: The primary keys to look up the rows with
+            type:
+              type: array
+              element_type:
+                type: named
+                name: MusicCollection_pk
+          consistent_read:
+            description: The consistency of a read operation. If set to true, then a strongly consistent read is used; otherwise, an eventually consistent read is used.
+            type:
+              type: named
+              name: Boolean
+        result_type:
+          type: array
+          element_type:
+            type: named
+            name: MusicCollection_row
+    object_types:
+      MusicCollection_pk:
+        description: Values of the primary key for the 'MusicCollection' table
+        fields:
+          Artist:
+            type:
+              name: String
+              type: named
+          SongTitle:
+            type:
+              name: String
+              type: named
+      MusicCollection_row:
+        description: A row in the 'MusicCollection' table
+        fields:
+          Artist:
+            type:
+              name: String
+              type: named
+          SongTitle:
+            type:
+              name: String
+              type: named
+          Album:
+            type:
+              name: Album
+              type: named
+          TrackNumber:
+            type:
+              name: Int
+              type: named
+      Album:
+        description: Album of music
+        fields:
+          Title:
+            description: Title of the album
+            type:
+              type: named
+              name: String
+    collections: []
+    procedures: []
+    scalar_types:
+      String:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Int:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Float:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Boolean:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Binary:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      Map:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+      List:
+        comparison_operators: {}
+        aggregate_functions: {}
+        update_operators: {}
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: String
+  representation: String
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: Int
+  representation: Int
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: Float
+  representation: Float
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: Boolean
+  representation: Boolean
+
+---
+kind: ScalarType
+version: v1
+definition:
+  name: Binary
+  graphql:
+    typeName: Binary
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: Binary
+  representation: Binary
+
+---
+kind: ScalarType
+version: v1
+definition:
+  name: Map
+  graphql:
+    typeName: Map
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: Map
+  representation: Map
+
+---
+kind: ScalarType
+version: v1
+definition:
+  name: List
+  graphql:
+    typeName: List
+
+---
+kind: DataConnectorScalarRepresentation
+version: v1
+definition:
+  dataConnectorName: dynamo
+  dataConnectorScalarType: List
+  representation: List
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: MusicCollection_pk
+  fields:
+    - name: ArtistName
+      type: String
+    - name: TrackTitle
+      type: String
+  graphql:
+    inputTypeName: MusicCollection_pk
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: MusicCollection_pk
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - ArtistName
+          - TrackTitle
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: MusicCollection_row
+  fields:
+    - name: Artist
+      type: String
+    - name: SongTitle
+      type: String
+    - name: Album
+      type: Album!
+    - name: TrackNumber
+      type: Int
+  graphql:
+    typeName: MusicCollection_row
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: MusicCollection_row
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - Artist
+          - SongTitle
+          - Album
+          - TrackNumber
+
+---
+kind: ObjectType
+version: v1
+definition:
+  name: Album
+  fields:
+    - name: Title
+      type: String
+  graphql:
+    typeName: Album
+
+---
+kind: TypePermissions
+version: v1
+definition:
+  typeName: Album
+  permissions:
+    - role: admin
+      output:
+        allowedFields:
+          - Title
+
+---
+kind: Command
+version: v1
+definition:
+  name: MusicCollection_by_keys
+  arguments:
+    - name: keyz
+      type: "[MusicCollection_pk!]!"
+    - name: consistent_readd
+      type: Boolean!
+  outputType: "[MusicCollection_row!]!"
+  source:
+    dataConnectorName: dynamo
+    dataConnectorCommand:
+      function: MusicCollection_by_keys
+    argumentMapping:
+      keyz: keys
+      consistent_readd: consistent_read
+    typeMapping:
+      MusicCollection_pk:
+        fieldMapping:
+          ArtistName:
+            column: Artist
+          TrackTitle:
+            column: SongTitle
+
+  graphql:
+    rootFieldKind: Query
+    rootFieldName: MusicCollection_by_keys
+
+---
+kind: CommandPermissions
+version: v1
+definition:
+  commandName: MusicCollection_by_keys
+  permissions:
+    - role: admin
+      allowExecution: true

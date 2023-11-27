@@ -1,0 +1,72 @@
+{
+  "$schema": "./src/configuration-schema.generated.json",
+  "awsRegion": "us-west-1",
+  "localDynamoDbEndpoint": "http://localhost:8000",
+  "awsCredentials": {
+    "accessKeyId": "test",
+    "secretAccessKey": "asdasd"
+  },
+  "tables": [
+    {
+      "attributeSchema": [
+        {
+          "dynamoType": "S",
+          "name": "Artist",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "SongTitle",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "M",
+          "name": "Album",
+          "schemaType": {
+            "name": "Album",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "N",
+          "name": "TrackNumber",
+          "schemaType": {
+            "type": "nullable",
+            "underlying_type": {
+              "name": "Int",
+              "type": "named"
+            }
+          }
+        }
+      ],
+      "globalSecondaryIndexes": [],
+      "keySchema": {
+        "hashKeyAttributeName": "Artist",
+        "rangeKeyAttributeName": "SongTitle"
+      },
+      "localSecondaryIndexes": [],
+      "tableName": "MusicCollection"
+    }
+  ],
+  "objectTypes": {
+    "Album": {
+      "description": "Album of music",
+      "fields": {
+        "Title": {
+          "description": "Title of the album",
+          "type": {
+            "type": "named",
+            "name": "String"
+          }
+        }
+      }
+    }
+  },
+  "version": 1
+}

@@ -1,0 +1,50 @@
+POST http://localhost:8100/query
+Content-Type: application/json
+
+{
+  "collection": "MusicCollection_by_keys",
+  "arguments": {
+    "keys": {
+      "type": "literal",
+      "value": [
+        {
+          "Artist": "Pendulum",
+          "SongTitle": "Witchcraft"
+        },
+        {
+          "Artist": "Pendulum",
+          "SongTitle": "Hold Your Colour"
+        },
+        {
+          "Artist": "Pendulum",
+          "SongTitle": "Set Me on Fire"
+        }
+      ]
+    },
+    "consistent_read": {
+      "type": "literal",
+      "value": false
+    }
+  },
+  "query": {
+    "fields": {
+      "Artist": {
+        "type": "column",
+        "column": "Artist"
+      },
+      "SongTitle": {
+        "type": "column",
+        "column": "SongTitle"
+      },
+      "AlbumMap": {
+        "type": "column",
+        "column": "Album"
+      },
+      "TrackNo": {
+        "type": "column",
+        "column": "TrackNumber"
+      }
+    }
+  },
+  "collection_relationships": {}
+}

@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "awsRegion": "us-west-1",
+  "tables": [
+    {
+      "tableName": "Forum",
+      "keySchema": {
+        "hashKeyAttributeName": "ForumName",
+        "rangeKeyAttributeName": null
+      },
+      "attributeSchema": [
+        {
+          "name": "ForumName",
+          "dynamoType": "S",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "name": "Category",
+          "dynamoType": "S",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "name": "Messages",
+          "dynamoType": "N",
+          "schemaType": {
+            "name": "Int",
+            "type": "named"
+          }
+        },
+        {
+          "name": "Threads",
+          "dynamoType": "N",
+          "schemaType": {
+            "name": "Int",
+            "type": "named"
+          }
+        },
+        {
+          "name": "Views",
+          "dynamoType": "N",
+          "schemaType": {
+            "name": "Int",
+            "type": "named"
+          }
+        }
+      ],
+      "globalSecondaryIndexes": [],
+      "localSecondaryIndexes": []
+    },
+    {
+      "tableName": "Thread",
+      "keySchema": {
+        "hashKeyAttributeName": "ForumName",
+        "rangeKeyAttributeName": "Subject"
+      },
+      "attributeSchema": [
+        {
+          "dynamoType": "S",
+          "name": "ForumName",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "Subject",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "LastPostedBy",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "Message",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "N",
+          "name": "Replies",
+          "schemaType": {
+            "name": "Int",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "N",
+          "name": "Views",
+          "schemaType": {
+            "name": "Int",
+            "type": "named"
+          }
+        }
+      ],
+      "globalSecondaryIndexes": [],
+      "localSecondaryIndexes": []
+    },
+    {
+      "tableName": "Reply",
+      "keySchema": {
+        "hashKeyAttributeName": "Id",
+        "rangeKeyAttributeName": "ReplyDateTime"
+      },
+      "attributeSchema": [
+        {
+          "dynamoType": "S",
+          "name": "Id",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "Message",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "PostedBy",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        },
+        {
+          "dynamoType": "S",
+          "name": "ReplyDateTime",
+          "schemaType": {
+            "name": "String",
+            "type": "named"
+          }
+        }
+      ],
+      "globalSecondaryIndexes": [
+        {
+          "indexName": "PostedBy-Message-Index",
+          "keySchema": {
+            "hashKeyAttributeName": "PostedBy",
+            "rangeKeyAttributeName": "Message"
+          }
+        }
+      ],
+      "localSecondaryIndexes": []
+    }
+  ],
+  "objectTypes": {}
+}
