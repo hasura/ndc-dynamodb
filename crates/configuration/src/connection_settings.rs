@@ -1,25 +1,39 @@
 //! Database connection settings.
 
-use crate::values::{Secret, ServiceKey};
+use crate::values::{Secret, AccessKeyId, SecretAccessKey, ProviderName, Region};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_CONNECTION_URI_PLACEHOLDER: &str = "HASURA_DYNAMODB_CONNECTION_URI_PLACEHOLDER";
+pub const DEFAULT_ACCESS_KEY_ID_VARIABLE: &str = "HASURA_DYNAMODB_AWS_ACCESS_KEY_ID";
+pub const DEFAULT_SECRET_ACCESS_KEY_VARIABLE: &str = "HASURA_DYNAMODB_AWS_SECRET_ACCESS_KEY";
+pub const DEFAULT_PROVIDER_NAME: &str = "HASURA_DYNAMODB_AWS_PROVIDER_NAME";
+pub const DEFAULT_REGION_VARIABLE: &str = "HASURA_DYNAMODB_AWS_REGION";
 
 /// Database connection settings.
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DatabaseConnectionSettings {
-    /// Connection string for a Postgres-compatible database.
-    pub connection_placeholder: ServiceKey,
+    pub access_key_id: AccessKeyId,
+    pub secret_access_key: SecretAccessKey,
+    // pub provider_name: ProviderName,
+    pub region: Region,
 }
 
 impl DatabaseConnectionSettings {
     pub fn empty() -> Self {
         Self {
-            connection_placeholder: ServiceKey(Secret::FromEnvironment {
-                variable: DEFAULT_CONNECTION_URI_PLACEHOLDER.into(),
-            })
+            access_key_id: AccessKeyId(Secret::FromEnvironment {
+                variable: DEFAULT_ACCESS_KEY_ID_VARIABLE.into(),
+            }),
+            secret_access_key: SecretAccessKey(Secret::FromEnvironment {
+                variable: DEFAULT_SECRET_ACCESS_KEY_VARIABLE.into(),
+            }),
+            // provider_name: ProviderName(Secret::FromEnvironment {
+            //     variable: DEFAULT_PROVIDER_NAME.into(),
+            // }),
+            region: Region(Secret::FromEnvironment {
+                variable: DEFAULT_REGION_VARIABLE.into(),
+            }),
         }
     }
 }

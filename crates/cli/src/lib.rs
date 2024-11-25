@@ -96,28 +96,28 @@ async fn initialize(with_metadata: bool, context: Context<impl Environment>) -> 
             ),
             supported_environment_variables: vec![
 				metadata::EnvironmentVariableDefinition {
-					name: "CONNECTION_URI".to_string(),
-					description: "The dynamodb connection URI".to_string(),
+					name: "HASURA_DYNAMODB_AWS_ACCESS_KEY_ID".to_string(),
+					description: "The AWS DynamoDB access key ID".to_string(),
 					default_value: Some("dynamodbql://read_only_user:readonlyuser@35.236.11.122:5432/v3-docs-sample-app".to_string()),
-                    required: false,
+                    required: true,
 				},
 				metadata::EnvironmentVariableDefinition {
-					name: "CLIENT_CERT".to_string(),
-					description: "The SSL client certificate (Optional)".to_string(),
+					name: "HASURA_DYNAMODB_AWS_SECRET_ACCESS_KEY".to_string(),
+					description: "The AWS DynamoDB secret access key".to_string(),
 					default_value: Some(String::new()),
-                    required: false
+                    required: true
 				},
+				// metadata::EnvironmentVariableDefinition {
+				// 	name: "HASURA_DYNAMODB_AWS_PROVIDER_NAME".to_string(),
+				// 	description: "The AWS DynamoDB provider name".to_string(),
+				// 	default_value: Some(String::new()),
+                //     required: true,
+				// },
 				metadata::EnvironmentVariableDefinition {
-					name: "CLIENT_KEY".to_string(),
-					description: "The SSL client key (Optional)".to_string(),
+					name: "HASURA_DYNAMODB_AWS_REGION".to_string(),
+					description: "The AWS DynamoDB region".to_string(),
 					default_value: Some(String::new()),
-                    required: false,
-				},
-				metadata::EnvironmentVariableDefinition {
-					name: "ROOT_CERT".to_string(),
-					description: "The SSL root certificate (Optional)".to_string(),
-					default_value: Some(String::new()),
-                    required: false,
+                    required: true,
 				},
 			],
             commands: metadata::Commands {

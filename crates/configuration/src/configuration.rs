@@ -19,8 +19,9 @@ pub const DEFAULT_CONNECTION_URI_VARIABLE: &str = "CONNECTION_URI";
 #[derive(Debug)]
 pub struct Configuration {
     pub metadata: metadata::Metadata,
-    // pub service_key: String,
-    // pub project_id: String,
-    // pub dataset_id: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    // pub provider_name: String,
+    pub region: String,
     // pub mutations_version: Option<metadata::mutations::MutationsVersion>,
 }

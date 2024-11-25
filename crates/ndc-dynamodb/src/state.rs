@@ -3,6 +3,7 @@
 //! This is initialized on startup.
 
 use aws_config::Region;
+use aws_sdk_dynamodb::Config;
 use thiserror::Error;
 use tracing::{info_span, Instrument};
 
@@ -34,15 +35,32 @@ pub async fn create_state(
     .instrument(info_span!("Setup metrics"))
     .await?;
 
-    let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
-        .test_credentials()
-        .region(Region::new("us-west-2"))
-        // DynamoDB run locally uses port 8000 by default.
-        .endpoint_url("http://localhost:8085")
-        .load()
-        .await;
-    let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
-    let client = aws_sdk_dynamodb::Client::from_conf(dynamodb_local_config);
+    let access_key_id = configuration.access_key_id.clone();
+    let secret_access_key = configuration.secret_access_key.clone();
+    let region = configuration.region.clone();
+
+    let credentials = aws_sdk_dynamodb::config::Credentials::new(
+        access_key_id.to_string(),
+        secret_access_key.to_string(),
+        None,           // Optional session token
+        None,           // Expiration (None for non-expiring)
+        "my-provider",  // Provider name
+    );
+
+    let config = Config::builder()
+        .region(aws_config::Region::new(region.to_string()))
+        .credentials_provider(credentials)
+        .build();
+
+    // let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+    //     .test_credentials()
+    //     .region(Region::new("us-west-2"))
+    //     // DynamoDB run locally uses port 8000 by default.
+    //     .endpoint_url("http://localhost:8085")
+    //     .load()
+    //     .await;
+    // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
+    let client = aws_sdk_dynamodb::Client::from_conf(config);
 
     // let service_account_key =
     //     yup_oauth2::parse_service_account_key(configuration.service_key.clone()).unwrap();

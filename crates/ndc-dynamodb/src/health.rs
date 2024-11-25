@@ -3,7 +3,7 @@
 use ndc_sdk::connector::ErrorResponse;
 
 // use gcp_bigquery_client::model::query_request::QueryRequest;
-use aws_sdk_dynamodb::Client;
+use aws_sdk_dynamodb::{config::http, Client};
 
 /// Check the health of the connector.
 ///
@@ -13,11 +13,8 @@ use aws_sdk_dynamodb::Client;
 pub async fn health_check(
     client: &Client,
 ) -> Result<(), ErrorResponse> {
-    // TODO: need to parse this from service account key or allow user to provide it
-    // let project_id = "hasura-development";
-
-    // // Query
-    // let mut rs = bigquery_client
+    // Query
+    // let mut rs = client
     //     .job()
     //     .query(
     //         project_id,
@@ -26,7 +23,24 @@ pub async fn health_check(
     //     .await
     //     .unwrap();
 
-    // silly check
+    let tables_result = client.list_tables().send().await;
+    let tables = tables_result.map_err(|op| {
+        ndc_dynamodb_configuration::error::ParseConfigurationError::IoErrorButStringified(format!(
+            "Failed to list tables:",
+            // op.error_message.unwrap()
+        ))
+    }); //TODO: handle error
+
+    match tables {
+        Ok(_res) => {
+            Ok(())
+        }
+        Err(_e) => {
+            Err(ErrorResponse::new_internal_with_details(serde_json::Value::Null))
+        }
+    }
+
+    // // silly check
     // let mut count = 0;
 
     // while rs.next_row() {
@@ -35,5 +49,5 @@ pub async fn health_check(
 
     // assert_eq!(count, 1);
 
-    Ok(())
+    // Ok(())
 }

@@ -1,12 +1,13 @@
 //! Internal Configuration and state for our connector.
 
-use crate::{connection_settings};
+use crate::{connection_settings, AccessKeyId, ProviderName, SecretAccessKey};
 use crate::environment::Environment;
 use crate::error::WriteParsedConfigurationError;
 use crate::values::{PoolSettings, Secret};
 
 use super::error::ParseConfigurationError;
-use aws_config::Region;
+use aws_config::meta::region::RegionProviderChain;
+// use aws_config::Region;
 // use aws_smithy_http::endpoint::Endpoint;
 use aws_sdk_dynamodb::operation::list_tables;
 use aws_sdk_dynamodb::types::{GlobalSecondaryIndex, KeyType, ProjectionType};
@@ -78,17 +79,49 @@ pub async fn introspect(
     args: &ParsedConfiguration,
     environment: impl Environment,
 ) -> anyhow::Result<ParsedConfiguration> {
-    let key_placeholder = args.connection_settings.connection_placeholder.clone();
+    let access_key_id = match &args.connection_settings.access_key_id {
+        AccessKeyId(Secret::Plain(value)) => Cow::Borrowed(value),
+        AccessKeyId(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+    };
+    let secret_access_key = match &args.connection_settings.secret_access_key {
+        SecretAccessKey(Secret::Plain(value)) => Cow::Borrowed(value),
+        SecretAccessKey(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+    };
+    // let provider_name = match &args.connection_settings.provider_name {
+    //     ProviderName(Secret::Plain(value)) => Cow::Borrowed(value),
+    //     ProviderName(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+    // };
+    let region = match &args.connection_settings.region {
+        crate::Region(Secret::Plain(value)) => Cow::Borrowed(value),
+        crate::Region(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+    };
+    // let access_key_id = args.connection_settings.access_key_id.clone();
+    // let secret_access_key = args.connection_settings.secret_access_key.clone();
+    // let session_token = args.connection_settings.session_token.clone();
+    // let region = args.connection_settings.region.clone();
     // let config = aws_config::load_from_env().await;
-    let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
-        .test_credentials()
-        .region(Region::new("us-west-2"))
-        // DynamoDB run locally uses port 8000 by default.
-        .endpoint_url("http://localhost:8085")
-        .load()
-        .await;
-    let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
-    let client = aws_sdk_dynamodb::Client::from_conf(dynamodb_local_config);
+    let credentials = aws_sdk_dynamodb::config::Credentials::new(
+        access_key_id.to_string(),
+        secret_access_key.to_string(),
+        None,           // Optional session token
+        None,           // Expiration (None for non-expiring)
+        "my-provider",  // Provider name
+    );
+    // let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+    //     .test_credentials()
+    //     .region(aws_config::Region::new("us-west-2"))
+    //     // DynamoDB run locally uses port 8000 by default.
+    //     .endpoint_url("http://localhost:8085")
+    //     .load()
+    //     .await;
+
+    // Configure AWS SDK with explicit credentials
+    let config = Config::builder()
+        .region(aws_config::Region::new(region.to_string()))
+        .credentials_provider(credentials)
+        .build();
+    // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
+    let client = aws_sdk_dynamodb::Client::from_conf(config);
     // let endpoint = Endpoint::immutable("http://localhost:8054".parse().unwrap());
     // let client = aws_sdk_dynamodb::Client::from_conf(
     //     Builder::from(&config)
@@ -279,7 +312,11 @@ pub async fn introspect(
     Ok(ParsedConfiguration {
         version: 1,
         connection_settings: connection_settings::DatabaseConnectionSettings {
-            connection_placeholder: args.connection_settings.connection_placeholder.clone(),
+            access_key_id: args.connection_settings.access_key_id.clone(),
+            secret_access_key: args.connection_settings.secret_access_key.clone(),
+            // provider_name: args.connection_settings.provider_name.clone(),
+            region: args.connection_settings.region.clone(),
+            // connection_placeholder: args.connection_settings.connection_placeholder.clone(),
         },
         metadata: metadata::Metadata {
             tables: TablesInfo(tables_info),

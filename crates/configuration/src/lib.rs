@@ -18,5 +18,5 @@ pub use version1::{
     // PoolSettings,
     ParsedConfiguration,
 };
-
+pub use values::connection_info::{AccessKeyId, Region, SecretAccessKey, ProviderName};
 pub use to_runtime_configuration::make_runtime_configuration;
