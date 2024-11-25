@@ -434,26 +434,28 @@ fn translate_comparison_target(
         models::ComparisonTarget::Column {
             name,
             path,
-            field_path: _,
+            field_path,
         } => {
-            todo!("relationship not supported")
+            // todo!("relationship not supported")
             // let (table_ref, joins) =
             //     translate_comparison_pathelements(env, state, root_and_current_tables, path)?;
 
-            // // get the unrelated table information from the metadata.
-            // let collection_info = env.lookup_collection(&table_ref.name)?;
-            // let ColumnInfo { name, .. } = collection_info.lookup_column(name)?;
+            let RootAndCurrentTables { root_table, .. } = root_and_current_tables;
 
-            // Ok((
-            //     wrap_in_field_path(
-            //         &field_path.into(),
-            //         sql::ast::Expression::ColumnReference(sql::ast::ColumnReference::TableColumn {
-            //             table: table_ref.reference.clone(),
-            //             name,
-            //         }),
-            //     ),
-            //     joins,
-            // ))
+            // get the unrelated table information from the metadata.
+            let collection_info = env.lookup_collection(&root_table.name)?;
+            let ColumnInfo { name, .. } = collection_info.lookup_column(name)?;
+
+            Ok((
+                wrap_in_field_path(
+                    &field_path.into(),
+                    sql::ast::Expression::ColumnReference(sql::ast::ColumnReference::TableColumn {
+                        table: root_table.reference.clone(),
+                        name,
+                    }),
+                ),
+                vec![],
+            ))
         }
 
         // Compare a column from the root table.
@@ -598,30 +600,31 @@ fn get_comparison_target_type(
             path,
             field_path,
         } => {
-            todo!("relationship is not supported")
-            // let mut field_path = match field_path {
-            //     None => VecDeque::new(),
-            //     Some(field_path) => field_path.iter().collect(),
-            // };
-            // match path.last() {
-            //     None => {
-            //         let column = env
-            //             .lookup_collection(&root_and_current_tables.current_table.name)?
-            //             .lookup_column(name)?;
+            
+            let mut field_path = match field_path {
+                None => VecDeque::new(),
+                Some(field_path) => field_path.iter().collect(),
+            };
+            match path.last() {
+                None => {
+                    let column = env
+                        .lookup_collection(&root_and_current_tables.current_table.name)?
+                        .lookup_column(name)?;
 
-            //         get_column_scalar_type_name(&column.r#type, &mut field_path)
-            //     }
-            //     Some(last) => {
-            //         let column = env
-            //             .lookup_collection(
-            //                 &env.lookup_relationship(&last.relationship)?
-            //                     .target_collection,
-            //             )?
-            //             .lookup_column(name)?;
+                    get_column_scalar_type_name(&column.r#type, &mut field_path)
+                }
+                Some(last) => {
+                    todo!("relationship is not supported")
+                    // let column = env
+                    //     .lookup_collection(
+                    //         &env.lookup_relationship(&last.relationship)?
+                    //             .target_collection,
+                    //     )?
+                    //     .lookup_column(name)?;
 
-            //         get_column_scalar_type_name(&column.r#type, &mut field_path)
-            //     }
-            // }
+                    // get_column_scalar_type_name(&column.r#type, &mut field_path)
+                }
+            }
         }
     }
 }

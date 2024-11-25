@@ -383,12 +383,13 @@ impl Expression {
             Expression::TableReference(table_reference) => table_reference.to_sql(sql),
             Expression::Value(value) => value.to_sql(sql),
             Expression::Cast { expression, r#type } => {
-                sql.append_syntax("cast");
-                sql.append_syntax("(");
+                // There is no cast expression in DynamoDB
+                // sql.append_syntax("cast");
+                // sql.append_syntax("(");
                 expression.to_sql(sql);
-                sql.append_syntax(" as ");
-                r#type.to_sql(sql);
-                sql.append_syntax(")");
+                // sql.append_syntax(" as ");
+                // r#type.to_sql(sql);
+                // sql.append_syntax(")");
             }
             Expression::And { left, right } => {
                 sql.append_syntax("(");
@@ -630,7 +631,8 @@ impl Value {
             Value::EmptyJsonArray => sql.append_syntax("'[]'"),
             Value::Int8(i) => sql.append_syntax(format!("{i}").as_str()),
             Value::Float8(n) => sql.append_syntax(format!("{n}").as_str()),
-            Value::Character(s) | Value::String(s) => sql.append_param(Param::String(s.clone())),
+            Value::Character(s) | Value::String(s) => sql.append_syntax(format!("'{s}'").as_str()),
+            // Value::Character(s) | Value::String(s) => sql.append_param(Param::String(s.clone())),
             Value::Variable(v) => sql.append_param(Param::Variable(v.clone())),
             Value::Bool(true) => sql.append_syntax("true"),
             Value::Bool(false) => sql.append_syntax("false"),

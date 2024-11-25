@@ -26,10 +26,12 @@ pub fn translate_json_value(
                 .ok_or(Error::UnableToDeserializeNumberAsF64(n.clone()))?;
             Ok(Expression::Value(Value::Float8(lit)))
         }
-        (serde_json::Value::String(str), _) => Ok(Expression::Cast {
-            expression: Box::new(Expression::Value(Value::String(str.clone()))),
-            r#type: type_to_ast_scalar_type(env, r#type)?,
-        }),
+        (serde_json::Value::String(str), _) => 
+            Ok(Expression::Value(Value::String(str.clone()))),
+        // Ok(Expression::Cast {
+        //     expression: Box::new(Expression::Value(Value::String(str.clone()))),
+        //     r#type: type_to_ast_scalar_type(env, r#type)?,
+        // }),
         (serde_json::Value::Array(_), database::Type::ArrayType(_)) => {
             let value_expression =
                 sql::ast::Expression::Value(sql::ast::Value::JsonValue(value.clone()));

@@ -30,6 +30,9 @@ use query_engine_metadata::metadata::{self, database, ColumnInfo, Nullable, Proj
 
 const CURRENT_VERSION: u32 = 1;
 pub const CONFIGURATION_FILENAME: &str = "configuration.json";
+const CHARACTER_STRINGS: [&str; 3] = ["character", "text", "string"];
+const UNICODE_CHARACTER_STRINGS: [&str; 3] = ["nchar", "ntext", "nvarchar"];
+const CANNOT_COMPARE: [&str; 3] = ["text", "ntext", "image"];
 // const CONFIGURATION_JSONSCHEMA_FILENAME: &str = "schema.json";
 
 
@@ -202,7 +205,7 @@ pub async fn introspect(
             type_name: scalar.clone(),
             description: None,
             aggregate_functions: BTreeMap::new(),
-            comparison_operators: BTreeMap::new(),
+            comparison_operators: get_comparison_operators_for_type(&scalar),
             type_representation: None,
         };
         scalars.insert(scalar.clone(), scalar_type);
@@ -280,4 +283,110 @@ pub async fn write_parsed_configuration(
     // .await?;
 
     Ok(())
+}
+
+// we hard code these, essentially
+// we look up available types in `sys.types` but hard code their behaviour by looking them up below
+// categories taken from https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-types-transact-sql
+fn get_comparison_operators_for_type(
+    type_name: &ndc_models::ScalarTypeName,
+) -> BTreeMap<ComparisonOperatorName, database::ComparisonOperator> {
+    let mut comparison_operators = BTreeMap::new();
+
+    // in ndc-spec, all things can be `==`
+    comparison_operators.insert(
+        ComparisonOperatorName::new("_eq".into()),
+        database::ComparisonOperator {
+            operator_name: "=".to_string(),
+            argument_type: type_name.clone(),
+            operator_kind: database::OperatorKind::Equal,
+            is_infix: true,
+        },
+    );
+
+    comparison_operators.insert(
+        ComparisonOperatorName::new("_in".into()),
+        database::ComparisonOperator {
+            operator_name: "IN".to_string(),
+            argument_type: type_name.clone(),
+            operator_kind: database::OperatorKind::In,
+            is_infix: true,
+        },
+    );
+
+    // include LIKE and NOT LIKE for string-ish types
+    if CHARACTER_STRINGS.contains(&type_name.as_str())
+        || UNICODE_CHARACTER_STRINGS.contains(&type_name.as_str())
+    {
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_like".into()),
+            database::ComparisonOperator {
+                operator_name: "LIKE".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_nlike".into()),
+            database::ComparisonOperator {
+                operator_name: "NOT LIKE".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+    }
+
+    // include comparison operators for types that are comparable, according to
+    // https://learn.microsoft.com/en-us/sql/t-sql/language-elements/comparison-operators-transact-sql?view=sql-server-ver16
+    if !CANNOT_COMPARE.contains(&type_name.as_str()) {
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_neq".into()),
+            database::ComparisonOperator {
+                operator_name: "!=".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_lt".into()),
+            database::ComparisonOperator {
+                operator_name: "<".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_gt".into()),
+            database::ComparisonOperator {
+                operator_name: ">".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_gte".into()),
+            database::ComparisonOperator {
+                operator_name: ">=".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+        comparison_operators.insert(
+            ComparisonOperatorName::new("_lte".into()),
+            database::ComparisonOperator {
+                operator_name: "<=".to_string(),
+                argument_type: type_name.clone(),
+                operator_kind: database::OperatorKind::Custom,
+                is_infix: true,
+            },
+        );
+    }
+    comparison_operators
 }

@@ -1,6 +1,6 @@
 //! Execute an execution plan against the database.
 
-use std::{collections::{hash_map, HashMap}, hash::Hash, process::exit};
+use std::{collections::{hash_map, HashMap}, hash::Hash, process::exit, vec};
 
 use crate::error::Error;
 use crate::metrics;
@@ -9,7 +9,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 // use gcp_bigquery_client::model::{query_parameter, query_parameter_type, query_parameter_value};
 use query_engine_sql::sql::string::Param;
 use serde_json::{self, to_string, Value};
-use aws_sdk_dynamodb::Client;
+use aws_sdk_dynamodb::{types::AttributeValue, Client};
 
 use query_engine_sql::sql;
 
@@ -37,8 +37,8 @@ pub async fn execute(
             let temp_query = "select * from test";
             let query_limit: Option<i32> = plan.query.limit.map(|limit| limit as i32);
 
-            // // smash query.params in here pls
-            // query_request.query_parameters = Some(
+            // smash query.params in here pls
+            // let params = Some(
             //     plan.query
             //         .query_sql()
             //         .params
@@ -47,27 +47,30 @@ pub async fn execute(
             //         .enumerate()
             //         .map(|(i, param)| match param {
             //             Param::String(str) => {
-            //                 let value = query_parameter_value::QueryParameterValue {
-            //                     array_values: None,
-            //                     struct_values: None,
-            //                     value: Some(str.to_string()),
-            //                 };
-            //                 let value_type = query_parameter_type::QueryParameterType {
-            //                     array_type: None,
-            //                     struct_types: None,
-            //                     r#type: "STRING".to_string(),
-            //                 };
-            //                 query_parameter::QueryParameter {
-            //                     name: Some(format!("param{}", i + 1)),
-            //                     parameter_type: Some(value_type),
-            //                     parameter_value: Some(value),
-            //                 }
+            //                 // let value = query_parameter_value::QueryParameterValue {
+            //                 //     array_values: None,
+            //                 //     struct_values: None,
+            //                 //     value: Some(str.to_string()),
+            //                 // };
+            //                 // let value_type = query_parameter_type::QueryParameterType {
+            //                 //     array_type: None,
+            //                 //     struct_types: None,
+            //                 //     r#type: "STRING".to_string(),
+            //                 // };
+            //                 // query_parameter::QueryParameter {
+            //                 //     name: Some(format!("param{}", i + 1)),
+            //                 //     parameter_type: Some(value_type),
+            //                 //     parameter_value: Some(value),
+            //                 // }
+
             //             }
             //             Param::Variable(_var) => todo!("Variables not implemented yet"), // error that `Err(Error::Query(QueryError::VariableNotFound(var.to_string())))`
             //             Param::Value(_value) => todo!("Values not implemented yet"),     // todo(PY)
             //         })
             //         .collect(),
             // );
+
+            let temp_param: Option<Vec<AttributeValue>> = Some(vec![AttributeValue::S("foo".to_string())]);
 
             // Query
             let mut rs = client
@@ -78,7 +81,7 @@ pub async fn execute(
                         query_request
                     )
                 )
-                .set_parameters(None)
+                .set_parameters(temp_param)
                 .set_limit(query_limit)
                 .send()
                 .await;
