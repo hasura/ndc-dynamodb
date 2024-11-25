@@ -51,7 +51,7 @@ pub struct Select {
     pub where_: Where,
     // pub group_by: GroupBy,
     pub order_by: OrderBy,
-    pub limit: Limit, //remove limit
+    // pub limit: Limit, //remove limit
 }
 
 /// An INSERT clause

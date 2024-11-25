@@ -25,6 +25,8 @@ pub struct Query {
     pub variables: Option<Vec<BTreeMap<models::VariableName, serde_json::Value>>>,
     /// The query.
     pub query: sql::ast::Select,
+    /// Query limit
+    pub limit: Option<u32>,
 }
 
 impl Query {
@@ -64,6 +66,7 @@ pub fn simple_query_execution_plan(
     variables: Option<Vec<BTreeMap<models::VariableName, serde_json::Value>>>,
     root_field: models::CollectionName,
     query: sql::ast::Select,
+    limit: Option<u32>,
 ) -> ExecutionPlan<Query> {
     ExecutionPlan {
         pre: vec![],
@@ -71,6 +74,7 @@ pub fn simple_query_execution_plan(
             root_field,
             variables,
             query,
+            limit,
         },
         post: vec![],
     }

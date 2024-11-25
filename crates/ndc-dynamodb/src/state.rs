@@ -38,7 +38,7 @@ pub async fn create_state(
         .test_credentials()
         .region(Region::new("us-west-2"))
         // DynamoDB run locally uses port 8000 by default.
-        .endpoint_url("http://localhost:8084")
+        .endpoint_url("http://localhost:8085")
         .load()
         .await;
     let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();

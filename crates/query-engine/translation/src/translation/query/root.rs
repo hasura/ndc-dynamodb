@@ -27,7 +27,7 @@ pub fn translate_query(
     make_from: &MakeFrom,
     join_predicate: &Option<JoinPredicate<'_, '_>>,
     query_request: &models::Query,
-) -> Result<(ReturnsFields, sql::helpers::SelectSet), Error> {
+) -> Result<(Option<u32>, ReturnsFields, sql::helpers::SelectSet), Error> {
     // translate rows selection.
     let (returns_field, row_select) =
         translate_rows_select(env, state, make_from, join_predicate, query_request)?;
@@ -53,7 +53,7 @@ pub fn translate_query(
         // //     sql::helpers::SelectSet::Aggregates(aggregates),
         // // ),
         // // Only rows or Neither (This is valid. Returns empty objects).
-        ((_, rows)) => (returns_field, sql::helpers::SelectSet::Rows(rows)), // no fields selected.
+        ((_, rows)) => (query_request.limit, returns_field, sql::helpers::SelectSet::Rows(rows)), // no fields selected.
                                                                                    // (
                                                                                    //     (ReturnsFields::NoFieldsWereRequested, rows),
                                                                                    //     None
@@ -157,7 +157,7 @@ fn translate_rows_select(
                 where_: sql::ast::Where(sql::helpers::empty_where()),
                 // group_by: sql::helpers::empty_group_by(),
                 order_by: sql::helpers::empty_order_by(),
-                limit: sql::helpers::empty_limit(),
+                // limit: sql::helpers::empty_limit(),
             }
         }
     };
@@ -247,11 +247,11 @@ pub fn translate_query_part(
 
     select.order_by = order_by;
 
-    // Add the limit.
-    select.limit = sql::ast::Limit {
-        limit: query.limit,
-        offset: query.offset,
-    };
+    // // Add the limit.
+    // select.limit = sql::ast::Limit {
+    //     limit: query.limit,
+    //     offset: query.offset,
+    // };
 
     Ok(())
 }

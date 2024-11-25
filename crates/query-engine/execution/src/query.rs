@@ -34,7 +34,8 @@ pub async fn execute(
 
             let mut query_request = (plan.query.query_sql().sql);
             dbg!(&query_request);
-            // let temp_query = "select * from test";
+            let temp_query = "select * from test";
+            let query_limit: Option<i32> = plan.query.limit.map(|limit| limit as i32);
 
             // // smash query.params in here pls
             // query_request.query_parameters = Some(
@@ -78,7 +79,7 @@ pub async fn execute(
                     )
                 )
                 .set_parameters(None)
-                .set_limit(Some(2))
+                .set_limit(query_limit)
                 .send()
                 .await;
 

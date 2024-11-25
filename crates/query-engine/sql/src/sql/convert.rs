@@ -129,7 +129,7 @@ impl Select {
 
         self.order_by.to_sql(sql);
 
-        self.limit.to_sql(sql);
+        // self.limit.to_sql(sql);
     }
 }
 

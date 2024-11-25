@@ -29,7 +29,7 @@ pub fn translate(
         // variables_table_ref,
     );
 
-    let (returns_field, select_set) = root::translate_query(
+    let (query_limit, returns_field, select_set) = root::translate_query(
         &env,
         &mut state,
         &root::MakeFrom::Collection {
@@ -78,5 +78,6 @@ pub fn translate(
         query_request.variables,
         query_request.collection,
         json_select,
+        query_limit,
     ))
 }
