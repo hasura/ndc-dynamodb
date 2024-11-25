@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::process::exit;
 use tokio::fs;
 
 use aws_sdk_dynamodb::config::Builder;
@@ -97,14 +98,14 @@ pub async fn introspect(
     // );
     // let client = aws_sdk_dynamodb::Client::new(&config);
     let tables_result = client.list_tables().send().await;
-    dbg!(&tables_result);
+    // dbg!(&tables_result);
     let tables = tables_result.map_err(|op| {
         ParseConfigurationError::IoErrorButStringified(format!(
             "Failed to list tables:",
             // op.error_message.unwrap()
         ))
     }).unwrap(); //TODO: handle error
-    dbg!(&tables);
+    // dbg!(&tables);
     let table_names = tables.table_names.unwrap_or_default();
     let mut scalars_list: BTreeSet<ScalarTypeName> = BTreeSet::new();
     // let foo = aws_sdk_dynamodb::Config::builder().build();
@@ -115,7 +116,7 @@ pub async fn introspect(
         let table_result = client.describe_table().table_name(table_name).send().await;
         let table = table_result.unwrap(); //TODO: handle error
         let table = table.table.unwrap();
-        dbg!(&table);
+        // dbg!(&table);
         let table_name = table.table_name.unwrap();
         let attribute_definitions = table.attribute_definitions.unwrap();
         let mut columns_info: BTreeMap<FieldName, ColumnInfo> = BTreeMap::new();
@@ -127,13 +128,13 @@ pub async fn introspect(
                 "S" => ScalarTypeName::new("String".into()),
                 "N" => ScalarTypeName::new("Number".into()),
                 "B" => ScalarTypeName::new("Binary".into()),
-                "SS" => ScalarTypeName::new("StringSet".into()),
-                "NS" => ScalarTypeName::new("NumberSet".into()),
-                "BS" => ScalarTypeName::new("BinarySet".into()),
-                "BOOL" => ScalarTypeName::new("Boolean".into()),
-                "NULL" => ScalarTypeName::new("Null".into()),
-                "M" => ScalarTypeName::new("Object".into()),
-                "L" => ScalarTypeName::new("Array".into()),
+                // "SS" => ScalarTypeName::new("StringSet".into()),
+                // "NS" => ScalarTypeName::new("NumberSet".into()),
+                // "BS" => ScalarTypeName::new("BinarySet".into()),
+                // "BOOL" => ScalarTypeName::new("Boolean".into()),
+                // "NULL" => ScalarTypeName::new("Null".into()),
+                // "M" => ScalarTypeName::new("Object".into()),
+                // "L" => ScalarTypeName::new("Array".into()),
 
                 _ => ScalarTypeName::new("Any".into()),
             };
@@ -147,6 +148,71 @@ pub async fn introspect(
             };
             columns_info.insert(scalar_field_name, column_info);
         }
+
+        //get non key attributes
+        let mut row_1 = client
+                .execute_statement()
+                .statement(
+                    format!(
+                        r#"select * from {}"#,
+                        table_name
+                    )
+                )
+                .set_parameters(None)
+                .set_limit(Some(20))
+                .send()
+                .await;
+
+        let result = match row_1
+        {
+            Ok(resp) => {
+                resp.items.unwrap()
+            }
+            Err(e) => {
+                println!("Got an error querying table:");
+                println!("{}", e);
+                exit(1) //fixme
+            }
+        };
+        // dbg!(&result);
+
+        // let row = result.first().unwrap();
+        for item in result.iter() {
+            for (key, attribute_value) in item {
+                let column_name = FieldName::new(key.clone().into());
+                // dbg!(&column_name);
+                let column_type = 
+                    if attribute_value.is_s() {
+                        let scalar_type_name = ScalarTypeName::new("String".into());
+                        scalars_list.insert(scalar_type_name.clone());
+                        metadata::Type::ScalarType(scalar_type_name)
+                    }
+                    else if attribute_value.is_n() {
+                        let scalar_type_name = ScalarTypeName::new("Number".into());
+                        scalars_list.insert(scalar_type_name.clone());
+                        metadata::Type::ScalarType(scalar_type_name)
+                    }
+                    else if attribute_value.is_bool() {
+                        let scalar_type_name = ScalarTypeName::new("Boolean".into());
+                        scalars_list.insert(scalar_type_name.clone());
+                        metadata::Type::ScalarType(scalar_type_name)
+                    }
+                    else {
+                        metadata::Type::ScalarType(ScalarTypeName::new("Any".into()))
+                    };
+                let column_info = ColumnInfo {
+                    name: key.clone(),
+                    r#type: column_type,
+                    nullable: Nullable::Nullable,
+                    description: None,
+                };
+                columns_info.insert(column_name, column_info);
+
+            }
+    }
+
+
+        //
         let mut key_info: BTreeMap<KeyType, String> = BTreeMap::new();
         let key_schema = table.key_schema.unwrap();
         for key in key_schema {
