@@ -1,0 +1,25 @@
+[package]
+name = "query-engine-translation"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ndc-sdk = { workspace = true }
+ndc-models = { workspace = true }
+
+query-engine-metadata = { path = "../metadata" }
+query-engine-sql = { path = "../sql" }
+ndc-dynamodb-configuration = { path = "../../../crates/configuration" }
+
+indexmap = { workspace = true }
+multimap = { workspace = true }
+ref-cast = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true, features = ["json"] }
+sqlformat = { workspace = true }
