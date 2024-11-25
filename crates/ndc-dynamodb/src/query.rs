@@ -36,6 +36,7 @@ pub async fn query(
             query_request_json = serde_json::to_string(&query_request).unwrap(),
             query_request = ?query_request
         );
+        // dbg!("got the query request");
 
         let plan = async {
             plan_query(configuration, state, query_request).map_err(|err| {
@@ -45,6 +46,7 @@ pub async fn query(
         }
         .instrument(info_span!("Plan query"))
         .await?;
+        // dbg!("planned the query");
 
         let result = async {
             execute_query(state, plan).await.map_err(|err| {

@@ -396,6 +396,9 @@ pub struct SchemaName(pub String);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TableName(pub String);
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Gsi(pub String);
+
 /// A reference to a table. Used when we want to query it,
 /// for example in a FROM clause.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -404,6 +407,7 @@ pub enum TableReference {
     DBTable {
         // schema: SchemaName,
         table: TableName,
+        gsi: Option<Gsi>,
     },
     /// refers to an alias we created
     AliasedTable(TableAlias),

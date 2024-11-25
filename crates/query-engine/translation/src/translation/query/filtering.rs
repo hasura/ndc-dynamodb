@@ -525,7 +525,7 @@ pub fn translate_exists_in_collection(
 
             // create a from clause and get a reference of inner query.
             let (table, from_clause) =
-                root::make_from_clause_and_reference(&collection, env, state, None)?;
+                root::make_from_clause_and_reference(&collection, None, env, state, None)?;
 
             // CockroachDB doesn't like empty selects, so we do "SELECT 1 as 'one' ..."
             let column_alias = sql::helpers::make_column_alias("one".to_string());

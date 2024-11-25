@@ -7,7 +7,7 @@ pub mod root;
 mod sorting;
 pub mod values;
 
-use ndc_models as models;
+use ndc_models::{self as models};
 
 use crate::translation::error::Error;
 use crate::translation::helpers::{Env, State};
@@ -29,12 +29,27 @@ pub fn translate(
         // variables_table_ref,
     );
 
+    let collection_string = query_request.collection.as_str();
+    let collection = if collection_string.contains(":") {
+        let split: Vec<&str> = collection_string.split(":").collect();
+        if split.len() != 2 {
+            return Err(Error::InvalidCollectionName(collection_string.to_string()));
+        };
+        let collection_name = models::CollectionName::new(split[0].into());
+        let gsi_name = split[1];
+        (collection_name, Some(sql::ast::Gsi(gsi_name.to_string())))
+        // coll_name = 
+    } else {
+        (models::CollectionName::new(collection_string.into()), None)
+    };
+
     let (query_limit, returns_field, select_set) = root::translate_query(
         &env,
         &mut state,
         &root::MakeFrom::Collection {
-            name: query_request.collection.clone(),
+            name: collection.0.clone(),
             arguments: query_request.arguments.clone(),
+            gsi: collection.1.clone(),
         },
         &None,
         &query_request.query,

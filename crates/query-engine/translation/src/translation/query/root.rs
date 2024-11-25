@@ -259,6 +259,7 @@ pub fn translate_query_part(
 /// Create a from clause from a collection name and its reference.
 pub fn make_from_clause_and_reference(
     collection_name: &models::CollectionName,
+    gsi_name: Option<sql::ast::Gsi>,
     // arguments: &BTreeMap<models::ArgumentName, models::Argument>,
     env: &Env,
     state: &mut State,
@@ -270,7 +271,7 @@ pub fn make_from_clause_and_reference(
     };
     // find the table according to the metadata.
     let collection_info = env.lookup_collection(collection_name)?;
-    let from_clause = make_from_clause(state, &collection_alias, &collection_info);
+    let from_clause = make_from_clause(state, &collection_alias, &collection_info, gsi_name);
 
     let collection_alias_name = sql::ast::TableReference::AliasedTable(collection_alias);
     let current_table = TableNameAndReference {
@@ -286,6 +287,7 @@ fn make_from_clause(
     state: &mut State,
     current_table_alias: &sql::ast::TableAlias,
     collection_info: &CollectionInfo,
+    gsi_name: Option<sql::ast::Gsi>,
     // arguments: &BTreeMap<models::ArgumentName, models::Argument>,
 ) -> sql::ast::From {
     match collection_info {
@@ -293,6 +295,7 @@ fn make_from_clause(
             let db_table = sql::ast::TableReference::DBTable {
                 // schema: sql::ast::SchemaName(info.schema_name.clone()),
                 table: sql::ast::TableName(info.table_name.clone()),
+                gsi: gsi_name,
             };
             sql::ast::From::Table {
                 reference: db_table,
@@ -323,6 +326,7 @@ pub enum MakeFrom {
     Collection {
         /// Used for generating aliases.
         name: models::CollectionName,
+        gsi: Option<sql::ast::Gsi>,
         /// Native query arguments.
         arguments: BTreeMap<models::ArgumentName, models::Argument>,
     },
@@ -342,8 +346,8 @@ fn make_reference_and_from_clause(
     make_from: &MakeFrom,
 ) -> Result<(TableNameAndReference, sql::ast::From), Error> {
     match make_from {
-        MakeFrom::Collection { name, arguments } => {
-            make_from_clause_and_reference(name, env, state, None)
+        MakeFrom::Collection { name, gsi, arguments } => {
+            make_from_clause_and_reference(name, gsi.clone(), env, state, None)
         }
         MakeFrom::TableReference { name, reference } => {
             let table_alias = state.make_table_alias(name.to_string());

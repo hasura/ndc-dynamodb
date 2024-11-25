@@ -716,9 +716,16 @@ impl Limit {
 impl TableReference {
     pub fn to_sql(&self, sql: &mut SQL) {
         match self {
-            TableReference::DBTable { table } => {
-                // sql.append_syntax(".");
+            TableReference::DBTable { table, gsi } => {
                 sql.append_identifier(&table.0);
+                match gsi {
+                    None => (),
+                    Some(gsi) => {
+                        sql.append_syntax(".");
+                        sql.append_identifier(&gsi.0);
+                    }
+                    
+                }
             }
             TableReference::AliasedTable(alias) => alias.to_sql(sql),
         };
