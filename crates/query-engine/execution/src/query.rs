@@ -5,8 +5,6 @@ use std::{collections::{hash_map, HashMap}, hash::Hash, process::exit, vec};
 use crate::error::Error;
 use crate::metrics;
 use bytes::{BufMut, Bytes, BytesMut};
-// use gcp_bigquery_client::model::query_request::QueryRequest;
-// use gcp_bigquery_client::model::{query_parameter, query_parameter_type, query_parameter_value};
 use query_engine_sql::sql::string::Param;
 use serde_json::{self, to_string, Value};
 use aws_sdk_dynamodb::{types::AttributeValue, Client};
@@ -84,29 +82,30 @@ pub async fn execute(
                 .set_parameters(temp_param)
                 .set_limit(query_limit)
                 .send()
-                .await;
+                .await
+                .unwrap();
 
-            let result = match rs
-            {
-                Ok(resp) => {
-                    resp.items.unwrap()
-                }
-                Err(e) => {
-                    println!("Got an error querying table:");
-                    println!("{}", e);
-                    exit(1)
-                }
-            };
+            // let result = match rs
+            // {
+            //     Ok(resp) => {
+            //         resp.items.unwrap()
+            //     }
+            //     Err(e) => {
+            //         println!("Got an error querying table:");
+            //         println!("{}", e);
+            //         exit(1)
+            //     }
+            // };
 
-            dbg!(&result);
+            // dbg!(&result);
 
             let mut res_map: Vec<HashMap<String, String>> = vec![];
 
 
-            for item in result.iter() {
+            for item in rs.items.unwrap().iter() {
                 dbg!(item);
                 let mut hashmap = HashMap::new();
-                let value_map = for (key, attribute_value) in item.clone(){
+                for (key, attribute_value) in item.clone(){
                     if attribute_value.is_s() {
                         let s = attribute_value.as_s().unwrap().to_string();
                         println!("String: {}", s);

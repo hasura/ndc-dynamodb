@@ -18,8 +18,6 @@ use query_engine_execution::metrics;
 pub struct State {
     pub metrics: metrics::Metrics,
     pub client: aws_sdk_dynamodb::Client,
-    // pub project_id: String,
-    // pub dataset_id: String,
 }
 
 /// Create a connection pool and wrap it inside a connector State.
@@ -61,18 +59,6 @@ pub async fn create_state(
     //     .await;
     // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
     let client = aws_sdk_dynamodb::Client::from_conf(config);
-
-    // let service_account_key =
-    //     yup_oauth2::parse_service_account_key(configuration.service_key.clone()).unwrap();
-
-    // let config = aws_config::load_from_env().await;
-    // let client = aws_sdk_dynamodb::Client::new(&config);
-
-    // // Init BigQuery client
-    // let client =
-    //     aws_sdk_dynamodb::Client::from_service_account_key(service_account_key, false)
-    //         .await
-    //         .unwrap();
 
     Ok(State {
         metrics,

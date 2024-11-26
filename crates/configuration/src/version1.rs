@@ -107,6 +107,14 @@ pub async fn introspect(
         None,           // Expiration (None for non-expiring)
         "my-provider",  // Provider name
     );
+    
+    // Configure AWS SDK with explicit credentials
+    let config = Config::builder()
+    .region(aws_config::Region::new(region.to_string()))
+    .credentials_provider(credentials)
+    .build();
+
+    // To use localhost url
     // let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
     //     .test_credentials()
     //     .region(aws_config::Region::new("us-west-2"))
@@ -114,22 +122,9 @@ pub async fn introspect(
     //     .endpoint_url("http://localhost:8085")
     //     .load()
     //     .await;
-
-    // Configure AWS SDK with explicit credentials
-    let config = Config::builder()
-        .region(aws_config::Region::new(region.to_string()))
-        .credentials_provider(credentials)
-        .build();
     // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
+
     let client = aws_sdk_dynamodb::Client::from_conf(config);
-    // let endpoint = Endpoint::immutable("http://localhost:8054".parse().unwrap());
-    // let client = aws_sdk_dynamodb::Client::from_conf(
-    //     Builder::from(&config)
-    //         .endpoint_resolver(endpoint)
-    //         .region(Region::new("us-west-2"))
-    //         .build()
-    // );
-    // let client = aws_sdk_dynamodb::Client::new(&config);
     let tables_result = client.list_tables().send().await;
     // dbg!(&tables_result);
     let tables = tables_result.map_err(|op| {
@@ -141,9 +136,6 @@ pub async fn introspect(
     // dbg!(&tables);
     let table_names = tables.table_names.unwrap_or_default();
     let mut scalars_list: BTreeSet<ScalarTypeName> = BTreeSet::new();
-    // let foo = aws_sdk_dynamodb::Config::builder().build();
-    // // let bar = aws_config::credential_process::CredentialProcessProvider::new(command);
-    // let shared_config = aws_sdk_dynamodb::
     let mut tables_info: BTreeMap<CollectionName, metadata::TableInfo> = BTreeMap::new();
     for table_name in table_names {
         let table_result = client.describe_table().table_name(table_name).send().await;
@@ -183,7 +175,7 @@ pub async fn introspect(
         }
 
         //get non key attributes
-        let mut row_1 = client
+        let mut result = client
                 .execute_statement()
                 .statement(
                     format!(
@@ -194,23 +186,24 @@ pub async fn introspect(
                 .set_parameters(None)
                 .set_limit(Some(20))
                 .send()
-                .await;
+                .await
+                .unwrap();
 
-        let result = match row_1
-        {
-            Ok(resp) => {
-                resp.items.unwrap()
-            }
-            Err(e) => {
-                println!("Got an error querying table:");
-                println!("{}", e);
-                exit(1) //fixme
-            }
-        };
+        // let result = match row_1
+        // {
+        //     Ok(resp) => {
+        //         resp.items.unwrap()
+        //     }
+        //     Err(e) => {
+        //         println!("Got an error querying table:");
+        //         println!("{}", e);
+        //         exit(1) //fixme
+        //     }
+        // };
         // dbg!(&result);
 
         // let row = result.first().unwrap();
-        for item in result.iter() {
+        for item in result.items.unwrap().iter() {
             for (key, attribute_value) in item {
                 let column_name = FieldName::new(key.clone().into());
                 // dbg!(&column_name);
