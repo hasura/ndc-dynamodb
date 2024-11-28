@@ -1,13 +1,13 @@
 //! Execute an execution plan against the database.
 
-use std::{collections::{hash_map, HashMap}, hash::Hash, process::exit, vec};
+use std::{collections::HashMap, vec};
 
 use crate::error::Error;
 use crate::metrics;
 use bytes::{BufMut, Bytes, BytesMut};
 use query_engine_sql::sql::string::Param;
 use serde_json::{self, to_string, Value};
-use aws_sdk_dynamodb::{types::AttributeValue, Client};
+use aws_sdk_dynamodb::Client;
 
 use query_engine_sql::sql;
 
@@ -24,15 +24,9 @@ pub async fn execute(
     // element in the vector is the result of running the query on one set of variables.
     match plan.query.variables {
         None => {
-            // TODO: need to parse this from service account key or allow user to provide it
-            // TODO(PY)
-            // let project_id = "hasura-development";
-
-            // let mut inner_rows = vec![];
-
-            let mut query_request = (plan.query.query_sql().sql);
+            let query_request = (plan.query.query_sql().sql);
             dbg!(&query_request);
-            let temp_query = "select * from test";
+            // let temp_query = "select * from test";
             let query_limit: Option<i32> = plan.query.limit.map(|limit| limit as i32);
 
             // smash query.params in here pls
@@ -68,10 +62,10 @@ pub async fn execute(
             //         .collect(),
             // );
 
-            let temp_param: Option<Vec<AttributeValue>> = Some(vec![AttributeValue::S("foo".to_string())]);
+            // let temp_param: Option<Vec<AttributeValue>> = Some(vec![AttributeValue::S("foo".to_string())]);
 
             // Query
-            let mut rs = client
+            let rs = client
                 .execute_statement()
                 .statement(
                     format!(
@@ -79,7 +73,7 @@ pub async fn execute(
                         query_request
                     )
                 )
-                .set_parameters(temp_param)
+                .set_parameters(None)
                 .set_limit(query_limit)
                 .send()
                 .await

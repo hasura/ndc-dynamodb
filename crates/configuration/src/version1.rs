@@ -127,7 +127,7 @@ pub async fn introspect(
     let client = aws_sdk_dynamodb::Client::from_conf(config);
     let tables_result = client.list_tables().send().await;
     // dbg!(&tables_result);
-    let tables = tables_result.map_err(|op| {
+    let tables = tables_result.map_err(|_op| {
         ParseConfigurationError::IoErrorButStringified(format!(
             "Failed to list tables:",
             // op.error_message.unwrap()
@@ -175,7 +175,7 @@ pub async fn introspect(
         }
 
         //get non key attributes
-        let mut result = client
+        let result = client
                 .execute_statement()
                 .statement(
                     format!(
