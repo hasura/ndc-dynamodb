@@ -14,6 +14,7 @@ use crate::translation::helpers::{
 use query_engine_metadata::metadata::database;
 use query_engine_sql::sql;
 use std::collections::VecDeque;
+use std::vec;
 
 /// Translate a boolean expression to a SQL expression.
 pub fn translate_expression(
@@ -26,17 +27,16 @@ pub fn translate_expression(
     let (filter_expression, joins) =
         translate_expression_with_joins(env, state, root_and_current_tables, predicate)?;
 
-    let mut joins = VecDeque::from(joins);
-    let filter = match joins.pop_front() {
+    let mut joins = vec![joins];
+    let filter = match joins.pop() {
         // When there are no joins, the expression will suffice.
         None => filter_expression,
         // When there are joins, wrap in an EXISTS query.
         Some(first) => where_exists_select(
             {
-                let (select, alias) = first.get_select_and_alias();
+                let (select, alias) = first[0].clone().get_select_and_alias();
                 sql::ast::From::Select { alias, select }
             },
-            joins.into(),
             sql::ast::Where(filter_expression),
         ),
     };

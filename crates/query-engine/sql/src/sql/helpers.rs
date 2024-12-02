@@ -116,7 +116,7 @@ pub fn star_from_select(table: TableReference, from: From) -> Select {
 }
 
 /// Generate an EXISTS where expression.
-pub fn where_exists_select(from: From, _joins: Vec<Join>, where_: Where) -> Expression {
+pub fn where_exists_select(from: From, where_: Where) -> Expression {
     Expression::Exists {
         select: Box::new(Select {
             with: empty_with(),

@@ -116,7 +116,7 @@ pub fn translate_query_part(
     };
 
     // translate order_by
-    let (order_by, _order_by_joins) =
+    let order_by =
         sorting::translate_order_by(env, state, &root_and_current_tables, &query.order_by)?;
 
     // select.joins.extend(order_by_joins);

@@ -21,11 +21,10 @@ pub fn translate_order_by(
     state: &mut State,
     root_and_current_tables: &RootAndCurrentTables,
     order_by: &Option<models::OrderBy>,
-) -> Result<(sql::ast::OrderBy, Vec<sql::ast::Join>), Error> {
-    let mut joins: Vec<sql::ast::Join> = vec![];
+) -> Result<sql::ast::OrderBy, Error> {
     // skip if there's no order by clause.
     match order_by {
-        None => Ok((sql::ast::OrderBy { elements: vec![] }, vec![])),
+        None => Ok(sql::ast::OrderBy { elements: vec![] }),
         Some(models::OrderBy { elements }) => {
             // Group order by elements by their paths, and translate each group
             // to result order by columns (and their indices in the order by list) and joins
@@ -39,7 +38,6 @@ pub fn translate_order_by(
                         state,
                         root_and_current_tables,
                         element_group,
-                        &mut joins,
                     )
                 })
                 .collect::<Result<Vec<Vec<(usize, sql::ast::OrderByElement)>>, Error>>()?;
@@ -48,15 +46,12 @@ pub fn translate_order_by(
             order_by_columns.sort_by_key(|(index, _)| *index);
 
             // Discard the indices, construct an order by clause, and accompanied joins.
-            Ok((
-                sql::ast::OrderBy {
-                    elements: order_by_columns
-                        .into_iter()
-                        .map(|(_, order_by_element)| order_by_element)
-                        .collect(),
-                },
-                joins,
-            ))
+            Ok(sql::ast::OrderBy {
+                elements: order_by_columns
+                    .into_iter()
+                    .map(|(_, order_by_element)| order_by_element)
+                    .collect(),
+            })
         }
     }
 }
@@ -234,7 +229,6 @@ fn translate_order_by_target_group(
     state: &mut State,
     root_and_current_tables: &RootAndCurrentTables,
     element_group: &OrderByElementGroup,
-    _joins: &mut Vec<sql::ast::Join>,
 ) -> Result<Vec<(usize, sql::ast::OrderByElement)>, Error> {
     let column_or_relationship_select = build_select_and_joins_for_order_by_group(
         env,
