@@ -16,7 +16,7 @@ use ndc_dynamodb_configuration::configuration;
 ///
 /// This function implements the [schema endpoint](https://hasura.github.io/ndc-spec/specification/schema/index.html)
 /// from the NDC specification.
-pub async fn get_schema(
+pub fn get_schema(
     configuration: &configuration::Configuration,
 ) -> Result<models::SchemaResponse, connector::ErrorResponse> {
     let metadata = &configuration.metadata;

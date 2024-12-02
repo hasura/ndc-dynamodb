@@ -62,7 +62,7 @@ impl Connector for DynamoDB {
         configuration: &Self::Configuration,
     ) -> Result<JsonResponse<models::SchemaResponse>> {
         schema::get_schema(configuration)
-            .await
+            // .await
             .map_err(|err| {
                 // TODO(PY): await?
                 tracing::error!(

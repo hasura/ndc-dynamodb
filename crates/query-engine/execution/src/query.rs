@@ -11,6 +11,7 @@ use serde_json::{self, to_string, Value};
 use query_engine_sql::sql;
 
 /// Execute a query against dynamodb.
+#[allow(clippy::cast_possible_wrap)]
 pub async fn execute(
     client: &Client,
     _metrics: &metrics::Metrics,
