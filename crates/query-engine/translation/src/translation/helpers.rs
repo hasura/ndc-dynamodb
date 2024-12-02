@@ -1,8 +1,6 @@
 //! Helpers for processing requests and building SQL.
 
-use std::collections::BTreeMap;
-
-use ndc_models::{self as models, CollectionName};
+use ndc_models::{self as models};
 
 use super::error::Error;
 use query_engine_metadata::metadata;
@@ -12,9 +10,6 @@ use query_engine_sql::sql;
 /// Static information from the query and metadata.
 pub struct Env<'request> {
     pub(crate) metadata: &'request metadata::Metadata,
-    // relationships: BTreeMap<models::RelationshipName, models::Relationship>,
-    // pub(crate) mutations_version: Option<metadata::mutations::MutationsVersion>,
-    // variables_table: Option<sql::ast::TableReference>,
 }
 
 #[derive(Debug)]
@@ -27,24 +22,6 @@ pub struct State {
 #[derive(Debug)]
 /// Used for generating a unique name for intermediate tables.
 pub struct TableAliasIndex(pub u64);
-
-// #[derive(Debug)]
-// /// Store top-level native queries generated throughout the translation process.
-// ///
-// /// Native queries are implemented as `WITH <native_query_name_<index>> AS (<native_query>) <query>`
-// struct NativeQueries {
-//     /// native queries that receive different arguments should result in different CTEs,
-//     /// and be used via a AliasedTable in the query.
-//     native_queries: Vec<NativeQueryInfo>,
-// }
-
-// #[derive(Debug)]
-// /// Information we store about a native query call.
-// pub struct NativeQueryInfo {
-//     pub info: metadata::NativeQueryInfo,
-//     pub arguments: BTreeMap<models::ArgumentName, models::Argument>,
-//     pub alias: sql::ast::TableAlias,
-// }
 
 /// For the root table in the query, and for the current table we are processing,
 /// We'd like to track what is their reference in the query (the name we can use to address them,
@@ -84,10 +61,6 @@ pub enum CollectionInfo<'env> {
         name: &'env models::CollectionName,
         info: &'env metadata::TableInfo,
     },
-    // NativeQuery {
-    //     name: &'env models::CollectionName,
-    //     info: &'env metadata::NativeQueryInfo,
-    // },
 }
 
 #[derive(Debug)]
@@ -97,17 +70,12 @@ pub enum FieldsInfo<'env> {
         name: &'env models::CollectionName,
         info: &'env metadata::TableInfo,
     },
-    // NativeQuery {
-    //     name: &'env models::CollectionName,
-    //     info: &'env metadata::NativeQueryInfo,
-    // },
 }
 
 impl<'a> From<&'a CollectionInfo<'a>> for FieldsInfo<'a> {
     fn from(value: &'a CollectionInfo<'a>) -> Self {
         match value {
             CollectionInfo::Table { name, info } => FieldsInfo::Table { name, info },
-            // CollectionInfo::NativeQuery { name, info } => FieldsInfo::NativeQuery { name, info },
         }
     }
 }
@@ -126,9 +94,6 @@ impl<'request> Env<'request> {
         let temp_metadata = metadata::Metadata::empty();
         let temp_env = Env {
             metadata: &temp_metadata,
-            // relationships: BTreeMap::new(),
-            // mutations_version: None,
-            // variables_table: None,
         };
         f(temp_env)
     }
@@ -136,15 +101,9 @@ impl<'request> Env<'request> {
     /// Create a new Env by supplying the metadata and relationships.
     pub fn new(
         metadata: &'request metadata::Metadata,
-        // relationships: BTreeMap<models::RelationshipName, models::Relationship>,
-        // mutations_version: Option<metadata::mutations::MutationsVersion>,
-        // variables_table: Option<sql::ast::TableReference>,
     ) -> Self {
         Env {
             metadata,
-            // relationships,
-            // mutations_version,
-            // variables_table,
         }
     }
 
@@ -167,38 +126,6 @@ impl<'request> Env<'request> {
                 name: type_name,
                 info: t,
             });
-            // .or_else(|| {
-            //     self.metadata
-            //         .composite_types
-            //         .0
-            //         .get(type_name.as_str())
-            //         .map(|t| FieldsInfo::CompositeType {
-            //             name: t.type_name.clone().into(),
-            //             info: t,
-            //         })
-            // })
-            // .or_else(|| {
-            //     self.metadata
-            //         .native_operations
-            //         .queries
-            //         .0
-            //         .get(type_name)
-            //         .map(|nq| FieldsInfo::NativeQuery {
-            //             name: type_name,
-            //             info: nq,
-            //         })
-            // })
-            // .or_else(|| {
-            //     self.metadata
-            //         .native_operations
-            //         .mutations
-            //         .0
-            //         .get(type_name.as_str())
-            //         .map(|nq| FieldsInfo::NativeQuery {
-            //             name: type_name,
-            //             info: nq,
-            //         })
-            // });
 
         info.ok_or(Error::CollectionNotFound(type_name.as_str().into()))
     }
@@ -221,59 +148,9 @@ impl<'request> Env<'request> {
         if let Some(table) = table {
             Ok(table)
         } else {
-            Err((Error::CollectionNotFound(collection_name.clone())))
-            // Error::CollectionNotFound(CollectionName(collection_name))
-
-
-            // let query = self
-            //     .metadata
-            //     .native_operations
-            //     .queries
-            //     .0
-            //     .get(collection_name.as_str())
-            //     .map(|nq| CollectionInfo::NativeQuery {
-            //         name: collection_name,
-            //         info: nq,
-            //     });
-
-            // if let Some(query) = query {
-            //     Ok(query)
-            // } else {
-            //     self.metadata
-            //         .native_operations
-            //         .mutations
-            //         .0
-            //         .get(collection_name.as_str())
-            //         .map(|nq| CollectionInfo::NativeQuery {
-            //             name: collection_name,
-            //             info: nq,
-            //         })
-            //         .ok_or(Error::CollectionNotFound(collection_name.clone()))
-            // }
+            Err(Error::CollectionNotFound(collection_name.clone()))
         }
     }
-
-    // /// Lookup a native query's information in the metadata.
-    // pub fn lookup_native_mutation(
-    //     &self,
-    //     procedure_name: &models::ProcedureName,
-    // ) -> Result<&metadata::NativeQueryInfo, Error> {
-    //     self.metadata
-    //         .native_operations
-    //         .mutations
-    //         .0
-    //         .get(procedure_name.as_str())
-    //         .ok_or(Error::ProcedureNotFound(procedure_name.clone()))
-    // }
-
-    // pub fn lookup_relationship(
-    //     &self,
-    //     name: &models::RelationshipName,
-    // ) -> Result<&models::Relationship, Error> {
-    //     self.relationships
-    //         .get(name)
-    //         .ok_or(Error::RelationshipNotFound(name.clone()))
-    // }
 
     /// Looks up the binary comparison operator's PostgreSQL name and arguments' type in the metadata.
     pub fn lookup_comparison_operator(
@@ -303,15 +180,6 @@ impl<'request> Env<'request> {
             .get(scalar_type)
             .and_then(|t| t.type_representation.as_ref())
     }
-
-    // /// Try to get the variables table reference. This will fail if no variables were passed
-    // /// as part of the query request.
-    // pub fn get_variables_table(&self) -> Result<sql::ast::TableReference, Error> {
-    //     match &self.variables_table {
-    //         None => Err(Error::UnexpectedVariable),
-    //         Some(t) => Ok(t.clone()),
-    //     }
-    // }
 
     /// Lookup a scalar type by its name in the ndc schema.
     pub(crate) fn lookup_scalar_type(
@@ -376,61 +244,12 @@ impl State {
         State::default()
     }
 
-    // /// When variables are passed to the query, create an alias for the variables table and
-    // /// a from clause.
-    // pub fn make_variables_table(
-    //     &mut self,
-    //     variables: &Option<Vec<BTreeMap<models::VariableName, serde_json::Value>>>,
-    // ) -> Option<(sql::ast::From, sql::ast::TableReference)> {
-    //     match variables {
-    //         None => None,
-    //         Some(_) => {
-    //             let variables_table_alias = self.make_table_alias("%variables_table".to_string());
-    //             let table_reference =
-    //                 sql::ast::TableReference::AliasedTable(variables_table_alias.clone());
-    //             Some((
-    //                 sql::helpers::from_variables(variables_table_alias),
-    //                 table_reference,
-    //             ))
-    //         }
-    //     }
-    // }
-
-    // /// Introduce a new native query to the generated sql.
-    // pub fn insert_native_query(
-    //     &mut self,
-    //     name: &models::CollectionName,
-    //     info: metadata::NativeQueryInfo,
-    //     arguments: BTreeMap<models::ArgumentName, models::Argument>,
-    // ) -> sql::ast::TableReference {
-    //     let alias = self.make_native_query_table_alias(name.as_str());
-    //     self.native_queries.native_queries.push(NativeQueryInfo {
-    //         info,
-    //         arguments,
-    //         alias: alias.clone(),
-    //     });
-    //     sql::ast::TableReference::AliasedTable(alias)
-    // }
-
-    // /// Fetch the tracked native queries used in the query plan and their table alias,
-    // /// and the global table index.
-    // pub fn get_native_queries_and_global_index(self) -> (Vec<NativeQueryInfo>, TableAliasIndex) {
-    //     (self.native_queries.native_queries, self.global_table_index)
-    // }
-
     // aliases
 
     /// Create table aliases using this function so they get a unique index.
     pub fn make_table_alias(&mut self, name: String) -> sql::ast::TableAlias {
         self.global_table_index.make_table_alias(name)
     }
-
-    // /// Create a table alias for left outer join lateral part.
-    // /// Provide an index and a source table name so we avoid name clashes,
-    // /// and get an alias.
-    // pub fn make_relationship_table_alias(&mut self, name: &str) -> sql::ast::TableAlias {
-    //     self.make_table_alias(format!("RELATIONSHIP_{name}"))
-    // }
 
     /// Create a table alias for order by target part.
     /// Provide an index and a source table name (to disambiguate the table being queried),
@@ -477,14 +296,6 @@ impl TableAliasIndex {
         }
     }
 }
-
-// impl NativeQueries {
-//     fn new() -> NativeQueries {
-//         NativeQueries {
-//             native_queries: vec![],
-//         }
-//     }
-// }
 
 /// A newtype wrapper around an ndc-spec type which represents accessing a nested field.
 #[derive(Debug, Clone)]

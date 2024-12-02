@@ -2,8 +2,7 @@
 
 use ndc_sdk::connector::ErrorResponse;
 
-// use gcp_bigquery_client::model::query_request::QueryRequest;
-use aws_sdk_dynamodb::{config::http, Client};
+use aws_sdk_dynamodb::Client;
 
 /// Check the health of the connector.
 ///
@@ -24,10 +23,9 @@ pub async fn health_check(
     //     .unwrap();
 
     let tables_result = client.list_tables().send().await;
-    let tables = tables_result.map_err(|op| {
+    let tables = tables_result.map_err(|_op| {
         ndc_dynamodb_configuration::error::ParseConfigurationError::IoErrorButStringified(format!(
-            "Failed to list tables:",
-            // op.error_message.unwrap()
+            "Failed to list tables"
         ))
     }); //TODO: handle error
 

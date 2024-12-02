@@ -1,7 +1,5 @@
 //! Handle filtering/where clauses translation.
 
-use std::collections::BTreeMap;
-
 use ndc_models as models;
 use query_engine_metadata::metadata;
 use query_engine_sql::sql::helpers::where_exists_select;
@@ -426,20 +424,16 @@ pub fn translate_expression_with_joins(
 /// translate a comparison target.
 fn translate_comparison_target(
     env: &Env,
-    state: &mut State,
+    _state: &mut State,
     root_and_current_tables: &RootAndCurrentTables,
     column: &models::ComparisonTarget,
 ) -> Result<(sql::ast::Expression, Vec<sql::ast::Join>), Error> {
     match column {
         models::ComparisonTarget::Column {
             name,
-            path,
+            path: _,
             field_path,
         } => {
-            // todo!("relationship not supported")
-            // let (table_ref, joins) =
-            //     translate_comparison_pathelements(env, state, root_and_current_tables, path)?;
-
             let RootAndCurrentTables { root_table, .. } = root_and_current_tables;
 
             // get the unrelated table information from the metadata.
@@ -514,14 +508,8 @@ pub fn translate_exists_in_collection(
     match in_collection {
         models::ExistsInCollection::Unrelated {
             collection,
-            arguments,
+            arguments: _,
         } => {
-            // let arguments = relationships::make_relationship_arguments(
-            //     relationships::MakeRelationshipArguments {
-            //         caller_arguments: BTreeMap::new(),
-            //         relationship_arguments: arguments,
-            //     },
-            // )?;
 
             // create a from clause and get a reference of inner query.
             let (table, from_clause) =
@@ -547,7 +535,7 @@ pub fn translate_exists_in_collection(
                 },
             };
 
-            let (expr, expr_joins) = translate_expression_with_joins(
+            let (expr, _expr_joins) = translate_expression_with_joins(
                 env,
                 state,
                 &new_root_and_current_tables,
@@ -613,16 +601,8 @@ fn get_comparison_target_type(
 
                     get_column_scalar_type_name(&column.r#type, &mut field_path)
                 }
-                Some(last) => {
+                Some(_last) => {
                     todo!("relationship is not supported")
-                    // let column = env
-                    //     .lookup_collection(
-                    //         &env.lookup_relationship(&last.relationship)?
-                    //             .target_collection,
-                    //     )?
-                    //     .lookup_column(name)?;
-
-                    // get_column_scalar_type_name(&column.r#type, &mut field_path)
                 }
             }
         }

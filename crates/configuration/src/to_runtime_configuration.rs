@@ -1,8 +1,6 @@
 //! Convert the parsed configuration metadata to internal engine metadata
 //! That can be used by the connector at runtime.
 
-use std::collections::BTreeMap;
-
 use super::version1::ParsedConfiguration;
 use crate::environment::Environment;
 use crate::error::MakeRuntimeConfigurationError;
@@ -38,17 +36,6 @@ pub fn make_runtime_configuration(
             })
         }
     }?;
-    // let provider_name = match parsed_config.connection_settings.provider_name {
-    //     ProviderName(Secret::Plain(key)) => Ok(key),
-    //     ProviderName(Secret::FromEnvironment { variable }) => {
-    //         environment.read(&variable).map_err(|error| {
-    //             MakeRuntimeConfigurationError::MissingEnvironmentVariable {
-    //                 file_path: super::version1::CONFIGURATION_FILENAME.into(),
-    //                 message: error.to_string(),
-    //             }
-    //         })
-    //     }
-    // }?;
     let region = match parsed_config.connection_settings.region {
         Region(Secret::Plain(key)) => Ok(key),
         Region(Secret::FromEnvironment { variable }) => {
@@ -428,54 +415,6 @@ fn convert_table_info(
     }
 }
 
-fn convert_foreign_relations(
-    foreign_relations: metadata::ForeignRelations,
-) -> query_engine_metadata::metadata::ForeignRelations {
-    query_engine_metadata::metadata::ForeignRelations(
-        foreign_relations
-            .0
-            .into_iter()
-            .map(|(k, foreign_relation)| (k, convert_foreign_relation(foreign_relation)))
-            .collect(),
-    )
-}
-
-fn convert_foreign_relation(
-    foreign_relation: metadata::ForeignRelation,
-) -> query_engine_metadata::metadata::ForeignRelation {
-    query_engine_metadata::metadata::ForeignRelation {
-        foreign_schema: foreign_relation.foreign_schema,
-        foreign_table: foreign_relation.foreign_table,
-        column_mapping: foreign_relation.column_mapping,
-    }
-}
-
-// fn convert_uniqueness_constraints(
-//     uniqueness_constraints: metadata::UniquenessConstraints,
-// ) -> query_engine_metadata::metadata::UniquenessConstraints {
-//     query_engine_metadata::metadata::UniquenessConstraints(
-//         uniqueness_constraints
-//             .0
-//             .into_iter()
-//             .map(|(k, uniqueness_constraint)| {
-//                 (k, convert_uniqueness_constraint(uniqueness_constraint))
-//             })
-//             .collect(),
-//     )
-// }
-
-// fn convert_uniqueness_constraint(
-//     uniqueness_constraint: metadata::UniquenessConstraint,
-// ) -> query_engine_metadata::metadata::UniquenessConstraint {
-//     query_engine_metadata::metadata::UniquenessConstraint(
-//         uniqueness_constraint
-//             .0
-//             .into_iter()
-//             .map(|()| (c.to_string(), c))
-//             .collect(),
-//     )
-// }
-
 fn convert_column_info(
     column_info: metadata::ColumnInfo,
 ) -> query_engine_metadata::metadata::ColumnInfo {
@@ -489,52 +428,3 @@ fn convert_column_info(
         description: column_info.description,
     }
 }
-
-fn convert_is_generated(
-    is_generated: &metadata::IsGenerated,
-) -> query_engine_metadata::metadata::IsGenerated {
-    match is_generated {
-        metadata::IsGenerated::NotGenerated => {
-            query_engine_metadata::metadata::IsGenerated::NotGenerated
-        }
-        metadata::IsGenerated::Stored => query_engine_metadata::metadata::IsGenerated::Stored,
-    }
-}
-
-fn convert_is_identity(
-    is_identity: &metadata::IsIdentity,
-) -> query_engine_metadata::metadata::IsIdentity {
-    match is_identity {
-        metadata::IsIdentity::NotIdentity => {
-            query_engine_metadata::metadata::IsIdentity::NotIdentity
-        }
-        metadata::IsIdentity::IdentityByDefault => {
-            query_engine_metadata::metadata::IsIdentity::IdentityByDefault
-        }
-        metadata::IsIdentity::IdentityAlways => {
-            query_engine_metadata::metadata::IsIdentity::IdentityAlways
-        }
-    }
-}
-
-fn convert_has_default(
-    has_default: &metadata::HasDefault,
-) -> query_engine_metadata::metadata::HasDefault {
-    match has_default {
-        metadata::HasDefault::NoDefault => query_engine_metadata::metadata::HasDefault::NoDefault,
-        metadata::HasDefault::HasDefault => query_engine_metadata::metadata::HasDefault::HasDefault,
-    }
-}
-
-// fn convert_mutations_version(
-//     mutations_version_opt: Option<metadata::mutations::MutationsVersion>,
-// ) -> Option<query_engine_metadata::metadata::mutations::MutationsVersion> {
-//     mutations_version_opt.map(|mutations_version| match mutations_version {
-//         metadata::mutations::MutationsVersion::V1 => {
-//             query_engine_metadata::metadata::mutations::MutationsVersion::V1
-//         }
-//         metadata::mutations::MutationsVersion::V2 => {
-//             query_engine_metadata::metadata::mutations::MutationsVersion::V2
-//         }
-//     })
-// }

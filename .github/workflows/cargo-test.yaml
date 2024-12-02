@@ -1,6 +1,6 @@
 # on: [push]
 
-# name: BigQuery NDC tests
+# name: DynamoDB NDC tests
 
 # jobs:
 #   test-query-engine:
@@ -36,8 +36,8 @@
 #         env:
 #           SLACK_WEBHOOK_URL: ${{ secrets.BROKEN_BUILD_SLACK_WEBHOOK_URL }}
 
-#   test-bigquery-ndc:
-#     name: Test ndc-bigquery
+#   test-dynamodb-ndc:
+#     name: Test ndc-dynamodb
 #     runs-on: ubuntu-latest
 #     env:
 #       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -65,7 +65,7 @@
 #       #     up-flags: "--pull=always --wait"
 #       #     down-flags: "--volumes"
 #       #     services: |
-#       #       bigquery
+#       #       dynamodb
 
 #       - name: run tests
 #         run: |

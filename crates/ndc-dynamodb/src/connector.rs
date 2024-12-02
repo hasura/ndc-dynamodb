@@ -1,4 +1,4 @@
-//! This defines a `Connector` implementation for BigQuery.
+//! This defines a `Connector` implementation for DynamoDB.
 //!
 //! The routes are defined here.
 
@@ -23,10 +23,10 @@ use super::query;
 use super::schema;
 use super::state;
 
-pub struct BigQuery;
+pub struct DynamoDB;
 
 #[async_trait]
-impl Connector for BigQuery {
+impl Connector for DynamoDB {
     /// The parsed configuration
     type Configuration = Arc<configuration::Configuration>;
     /// The unserializable, transient state
@@ -139,19 +139,19 @@ impl Connector for BigQuery {
     }
 }
 
-pub struct BigQuerySetup<Env: Environment> {
+pub struct DynamoDBSetup<Env: Environment> {
     environment: Env,
 }
 
-impl<Env: Environment> BigQuerySetup<Env> {
+impl<Env: Environment> DynamoDBSetup<Env> {
     pub fn new(environment: Env) -> Self {
         Self { environment }
     }
 }
 
 #[async_trait]
-impl<Env: Environment + Send + Sync> ConnectorSetup for BigQuerySetup<Env> {
-    type Connector = BigQuery;
+impl<Env: Environment + Send + Sync> ConnectorSetup for DynamoDBSetup<Env> {
+    type Connector = DynamoDB;
 
     /// Validate the raw configuration provided by the user,
     /// returning a configuration error or a validated `Connector::Configuration`.

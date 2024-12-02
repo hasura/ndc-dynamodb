@@ -71,18 +71,6 @@ pub async fn get_schema(
         })
         .collect();
 
-    let collections_by_identifier: BTreeMap<(&str), &str> = metadata
-        .tables
-        .0
-        .iter()
-        .map(|(collection_name, table)| {
-            (
-                (table.table_name.as_ref()),
-                collection_name.as_str(),
-            )
-        })
-        .collect();
-
     let collections = metadata
         .tables
         .0
@@ -92,59 +80,9 @@ pub async fn get_schema(
             description: table.description.clone(),
             arguments: BTreeMap::new(),
             collection_type: table_name.as_str().into(),
-            uniqueness_constraints: todo!("not implemented"),
-            foreign_keys: todo!("not supported"),
-            // uniqueness_constraints: table
-            //     .uniqueness_constraints
-            //     .0
-            //     .iter()
-            //     .map(
-            //         |(constraint_name, metadata::UniquenessConstraint(constraint_columns))| {
-            //             (
-            //                 constraint_name.clone(),
-            //                 models::UniquenessConstraint {
-            //                     unique_columns: constraint_columns.iter().cloned().collect(), // todo(PY): do we need different types for query engine and v1? BteeSet and BtreeMap
-            //                 },
-            //             )
-            //         },
-            //     )
-            //     .collect(),
-            // foreign_keys: table
-            //     .foreign_relations
-            //     .0
-            //     .iter()
-            //     .map(
-            //         |(
-            //             constraint_name,
-            //             metadata::ForeignRelation {
-            //                 foreign_schema,
-            //                 foreign_table,
-            //                 column_mapping,
-            //             },
-            //         )| {
-            //             (
-            //                 constraint_name.clone(),
-            //                 models::ForeignKeyConstraint {
-            //                     foreign_collection: (*collections_by_identifier
-            //                         .get(&(
-            //                             // the foreign schema used to be implied, so if it is not
-            //                             // provided, we need to default back to the originating
-            //                             // table's schema
-            //                             foreign_schema.as_ref().unwrap_or(&table.schema_name),
-            //                             &foreign_table,
-            //                         ))
-            //                         .unwrap_or_else(|| {
-            //                             panic!(
-            //                                 "Unknown foreign table: {foreign_schema:?}.{foreign_table:?}"
-            //                             )
-            //                         }))
-            //                     .into(),
-            //                     column_mapping: column_mapping.clone(),
-            //                 },
-            //             )
-            //         },
-            //     )
-            //     .collect(),
+            uniqueness_constraints: BTreeMap::new(),
+            foreign_keys: BTreeMap::new(),
+
         })
         .collect();
 

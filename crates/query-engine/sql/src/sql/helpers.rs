@@ -1,14 +1,11 @@
 //! Helpers for building sql::ast types in certain shapes and patterns.
 
 use super::ast::*;
-use std::collections::BTreeMap;
 
 /// Used as input to helpers to construct SELECTs which return 'rows' and/or 'aggregates' results.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectSet {
     Rows(Select),
-    // Aggregates(Select),
-    // RowsAndAggregates(Select, Select),
 }
 
 // Empty clauses //
@@ -122,7 +119,7 @@ pub fn star_from_select(table: TableReference, from: From) -> Select {
 }
 
 /// Generate an EXISTS where expression.
-pub fn where_exists_select(from: From, joins: Vec<Join>, where_: Where) -> Expression {
+pub fn where_exists_select(from: From, _joins: Vec<Join>, where_: Where) -> Expression {
     Expression::Exists {
         select: Box::new(Select {
             with: empty_with(),
@@ -344,20 +341,6 @@ pub fn select_rows_as_json(
         alias: table_alias,
     });
     select
-}
-
-/// Wrap an expression in `coalesce(json_agg(<expr>), '[]')`.
-fn wrap_in_json_agg(expression: Expression) -> Expression {
-    Expression::FunctionCall {
-        function: Function::Coalesce,
-        args: vec![
-            Expression::FunctionCall {
-                function: Function::JsonAgg,
-                args: vec![expression],
-            },
-            Expression::Value(Value::EmptyJsonArray),
-        ],
-    }
 }
 
 /// SQL field name to be used for keeping the values of variable sets.

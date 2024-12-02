@@ -5,8 +5,6 @@ use std::hash::{Hash, Hasher};
 
 use ndc_models as models;
 
-use super::filtering;
-use super::root;
 use crate::translation::error::Error;
 use crate::translation::helpers::{
     wrap_in_field_path, CollectionInfo, Env, FieldPath, RootAndCurrentTables, State,
@@ -99,7 +97,6 @@ enum Aggregate {
     CountStarAggregate,
     SingleColumnAggregate {
         column: models::FieldName,
-        function: models::AggregateFunctionName,
     },
 }
 
@@ -176,7 +173,7 @@ fn group_elements(elements: &[models::OrderByElement]) -> Vec<OrderByElementGrou
             models::OrderByTarget::SingleColumnAggregate {
                 path,
                 column,
-                function,
+                function: _,
                 field_path: _,
             } => aggregate_element_groups.insert(
                 hash_path(path),
@@ -186,7 +183,6 @@ fn group_elements(elements: &[models::OrderByElement]) -> Vec<OrderByElementGrou
                     element.order_direction,
                     Aggregate::SingleColumnAggregate {
                         column: column.clone(),
-                        function: function.clone(),
                     },
                 ),
             ),
@@ -240,7 +236,7 @@ fn translate_order_by_target_group(
     state: &mut State,
     root_and_current_tables: &RootAndCurrentTables,
     element_group: &OrderByElementGroup,
-    joins: &mut Vec<sql::ast::Join>,
+    _joins: &mut Vec<sql::ast::Join>,
 ) -> Result<Vec<(usize, sql::ast::OrderByElement)>, Error> {
     let column_or_relationship_select = build_select_and_joins_for_order_by_group(
         env,
@@ -269,51 +265,6 @@ fn translate_order_by_target_group(
                 )
             })
             .collect()),
-
-        // // The column is from a relationship table, we need to join with this select query.
-        // ColumnsOrSelect::Select { columns, select } => {
-        //     // Give it a nice unique alias.
-        //     let table_alias = state
-        //         .make_order_by_table_alias(root_and_current_tables.current_table.name.as_str());
-
-        //     // Build a join and push it to the accumulated joins.
-        //     let new_join = sql::ast::LeftOuterJoin {
-        //         select: Box::new(select),
-        //         alias: table_alias.clone(),
-        //         on: (sql::ast::Expression::Value(sql::ast::Value::Bool(true))), // TODO: fixme
-        //     };
-
-        //     joins.push(sql::ast::Join::LeftOuterJoin(new_join));
-
-        //     // Build an alias to query the column from this select.
-        //     let columns = columns
-        //         .into_iter()
-        //         .map(|(i, direction, field_path, column)| {
-        //             (
-        //                 i,
-        //                 sql::ast::OrderByElement {
-        //                     target: wrap_in_field_path(
-        //                         &field_path,
-        //                         sql::ast::Expression::ColumnReference(
-        //                             sql::ast::ColumnReference::AliasedColumn {
-        //                                 table: sql::ast::TableReference::AliasedTable(
-        //                                     table_alias.clone(),
-        //                                 ),
-        //                                 column,
-        //                             },
-        //                         ),
-        //                     ),
-        //                     direction: match direction {
-        //                         models::OrderDirection::Asc => sql::ast::OrderByDirection::Asc,
-        //                         models::OrderDirection::Desc => sql::ast::OrderByDirection::Desc,
-        //                     },
-        //                 },
-        //             )
-        //         })
-        //         .collect();
-
-        //     Ok(columns)
-        // }
     }
 }
 
@@ -330,24 +281,13 @@ enum ColumnsOrSelect {
             sql::ast::ColumnReference, // A reference for this column.
         )>,
     ),
-    // /// Select represents a select query for a relationship table which contain the requested columns.
-    // Select {
-    //     columns: Vec<(
-    //         usize,                  // The global order by index for this column.
-    //         models::OrderDirection, // The order direction.
-    //         FieldPath,              // The nested field path.
-    //         sql::ast::ColumnAlias,  // The name of the selected column.
-    //                                 // This is not ColumnReference because the caller decides on the table alias.
-    //     )>,
-    //     select: sql::ast::Select,
-    // },
 }
 
 /// Generate a SELECT query representing querying the requested columns/aggregates from a table
 /// (potentially a nested one using joins).
 fn build_select_and_joins_for_order_by_group(
     env: &Env,
-    state: &mut State,
+    _state: &mut State,
     root_and_current_tables: &RootAndCurrentTables,
     element_group: &OrderByElementGroup,
 ) -> Result<ColumnsOrSelect, Error> {
@@ -368,9 +308,6 @@ fn build_select_and_joins_for_order_by_group(
     // > )
     //
     // Note that "Track" will be supplied by the caller of this function.
-
-    // We will add joins according to the path element.
-    let mut joins: Vec<sql::ast::LeftOuterJoin> = vec![];
 
     let path = element_group.path();
 
@@ -412,155 +349,20 @@ fn build_select_and_joins_for_order_by_group(
     }
 }
 
-/// Used in 'process_path_element_for_order_by_targets' to create select lists for intermediate tables
-/// in the join process and the last table, while keeping additional required information about the
-/// columns in the last table.
-enum PathElementSelectColumns {
-    /// Columns selected from an intermediate path table.
-    RelationshipColumns(Vec<OrderByRelationshipColumn>),
-    /// Expressions selected from the target order by table.
-    OrderBySelectExpressions(Vec<OrderBySelectExpression>),
-}
-impl PathElementSelectColumns {
-    /// Extract the parts to be used when selecting these expressions from their table.
-    fn aliases_and_expressions(&self) -> Vec<(sql::ast::ColumnAlias, sql::ast::Expression)> {
-        match self {
-            PathElementSelectColumns::RelationshipColumns(vec) => vec
-                .iter()
-                .map(|column| (column.alias.clone(), column.expression.clone()))
-                .collect(),
-            PathElementSelectColumns::OrderBySelectExpressions(vec) => vec
-                .iter()
-                .map(|column| (column.alias.clone(), column.expression.clone()))
-                .collect(),
-        }
-    }
-}
 /// An expression selected from the target order by table.
 struct OrderBySelectExpression {
     index: usize,
     direction: models::OrderDirection,
     field_path: FieldPath,
     alias: sql::ast::ColumnAlias,
-    expression: sql::ast::Expression,
-    aggregate: Option<sql::ast::Function>,
 }
-/// An expression selected from an intermediate relationship table.
-struct OrderByRelationshipColumn {
-    alias: sql::ast::ColumnAlias,
-    expression: sql::ast::Expression,
-}
-
-// /// This function is used when looping through relationships,
-// /// building up new joins and replacing the selected columns for the order by.
-// /// for each step in the loop we peek at the required columns (used as keys in the join),
-// /// from the next join, we need to select these.
-// fn process_path_element_for_order_by_targets(
-//     (env, state): (&Env, &mut State),
-//     root_and_current_tables: &RootAndCurrentTables,
-//     element_group: &OrderByElementGroup,
-//     // to get the information about this path element we need to select from the relevant table
-//     // and join with the previous table. We add a new join to this list of joins.
-//     joins: &mut Vec<sql::ast::LeftOuterJoin>,
-//     // the table we are joining with, the current path element and its index.
-//     (last_table, (index, path_element)): (TableNameAndReference, (usize, &models::PathElement)),
-// ) -> Result<(TableNameAndReference, PathElementSelectColumns), Error> {
-//     // examine the path elements' relationship.
-//     let relationship = env.lookup_relationship(&path_element.relationship)?;
-
-//     let target_collection_alias =
-//         state.make_order_path_part_table_alias(relationship.target_collection.as_str());
-
-//     let (table, from_clause) = from_clause_for_path_element(
-//         env,
-//         state,
-//         relationship,
-//         &target_collection_alias,
-//         &path_element.arguments,
-//     )?;
-
-//     let path = element_group.path();
-
-//     // find the required columns by peeking into the next path element.
-//     // if this is the last path element, then we select the column required by the order by.
-//     let select_cols = if let Some(path_element) = path.get(index + 1) {
-//         let relationship = env.lookup_relationship(&path_element.relationship)?;
-//         let columns = relationship
-//             .column_mapping
-//             .keys()
-//             .map(|source_col| {
-//                 let collection = env.lookup_collection(&table.name)?;
-//                 let selected_column = collection.lookup_column(source_col)?;
-//                 // we are going to deliberately use the table column name and not an alias we get from
-//                 // the query request because this is internal to the sorting mechanism.
-//                 let selected_column_alias = sql::helpers::make_column_alias(selected_column.name.0);
-//                 // we use the real name of the column as an alias as well.
-//                 Ok(OrderByRelationshipColumn {
-//                     alias: selected_column_alias.clone(),
-//                     expression: sql::ast::Expression::ColumnReference(
-//                         sql::ast::ColumnReference::AliasedColumn {
-//                             table: table.reference.clone(),
-//                             column: selected_column_alias,
-//                         },
-//                     ),
-//                 })
-//             })
-//             .collect::<Result<Vec<OrderByRelationshipColumn>, Error>>()?;
-//         Ok(PathElementSelectColumns::RelationshipColumns(columns))
-//     } else {
-//         // check that the group we are about to sort by is not a group of columns
-//         // where the relationship is an array relationship.
-//         // Because it means trying sorting by multiple rows?
-//         match element_group {
-//             OrderByElementGroup::Columns { .. } => match relationship.relationship_type {
-//                 models::RelationshipType::Array => {
-//                     Err(Error::MissingAggregateForArrayRelationOrdering)
-//                 }
-//                 models::RelationshipType::Object => Ok(()),
-//             },
-//             OrderByElementGroup::Aggregates { .. } => Ok(()),
-//         }?;
-
-//         let target_collection = env.lookup_collection(&relationship.target_collection)?;
-//         Ok(PathElementSelectColumns::OrderBySelectExpressions(
-//             translate_targets(&target_collection, &table, element_group)?,
-//         ))
-//     }?;
-
-//     // build a select query from this table where join condition and predicate.
-//     let select = select_for_path_element(
-//         env,
-//         state,
-//         &RootAndCurrentTables {
-//             root_table: root_and_current_tables.root_table.clone(),
-//             current_table: last_table,
-//         },
-//         relationship,
-//         &path_element.predicate,
-//         sql::ast::SelectList::SelectList(select_cols.aliases_and_expressions()),
-//         (table.clone(), from_clause),
-//     )?;
-
-//     // build a join from it, and
-//     let join = sql::ast::LeftOuterJoin {
-//         select: Box::new(select),
-//         alias: target_collection_alias,
-//         on: sql::ast::Expression::Value(sql::ast::Value::Bool(true)), // TODO: fixme
-//     };
-
-//     // add the join to our pile'o'joins
-//     joins.push(join);
-
-//     // return the required columns for this table's join and the last table we found.
-//     Ok((table, select_cols))
-// }
 
 /// Take an element group and convert all of the elements we want to select
 /// to aliases and expressions, along with their order by direction and their index
 /// in the order by list.
 fn translate_targets(
     target_collection: &CollectionInfo,
-    table: &TableNameAndReference,
+    _table: &TableNameAndReference,
     element_group: &OrderByElementGroup,
 ) -> Result<Vec<OrderBySelectExpression>, Error> {
     match element_group {
@@ -580,14 +382,7 @@ fn translate_targets(
                         index: element.index,
                         direction: element.direction,
                         alias: selected_column_alias.clone(),
-                        expression: sql::ast::Expression::ColumnReference(
-                            sql::ast::ColumnReference::AliasedColumn {
-                                table: table.reference.clone(),
-                                column: selected_column_alias,
-                            },
-                        ),
                         field_path: field_path.clone(),
-                        aggregate: None,
                     })
                 })
                 .collect::<Result<Vec<_>, Error>>()?;
@@ -607,11 +402,9 @@ fn translate_targets(
                                 alias: column_alias,
                                 // Aggregates do not have a field path.
                                 field_path: (&None).into(),
-                                expression: sql::ast::Expression::Value(sql::ast::Value::Int8(1)),
-                                aggregate: Some(sql::ast::Function::Unknown("COUNT".to_string())),
                             })
                         }
-                        Aggregate::SingleColumnAggregate { column, function } => {
+                        Aggregate::SingleColumnAggregate { column } => {
                             let selected_column = target_collection.lookup_column(column)?;
                             // we are going to deliberately use the table column name and not an alias we get from
                             // the query request because this is internal to the sorting mechanism.
@@ -624,13 +417,6 @@ fn translate_targets(
                                 alias: selected_column_alias.clone(),
                                 // Aggregates do not have a field path.
                                 field_path: (&None).into(),
-                                expression: sql::ast::Expression::ColumnReference(
-                                    sql::ast::ColumnReference::AliasedColumn {
-                                        table: table.reference.clone(),
-                                        column: selected_column_alias,
-                                    },
-                                ),
-                                aggregate: Some(sql::ast::Function::Unknown(function.to_string())),
                             })
                         }
                     }
@@ -641,72 +427,3 @@ fn translate_targets(
         }
     }
 }
-
-// /// Create a from clause and a table reference from a path element's relationship.
-// fn from_clause_for_path_element(
-//     env: &Env,
-//     state: &mut State,
-//     relationship: &models::Relationship,
-//     target_collection_alias: &sql::ast::TableAlias,
-//     arguments: &std::collections::BTreeMap<models::ArgumentName, models::RelationshipArgument>,
-// ) -> Result<(TableNameAndReference, sql::ast::From), Error> {
-//     let arguments =
-//         relationships::make_relationship_arguments(relationships::MakeRelationshipArguments {
-//             caller_arguments: arguments.clone(),
-//             relationship_arguments: relationship.arguments.clone(),
-//         })?;
-
-//     root::make_from_clause_and_reference(
-//         &relationship.target_collection,
-//         &arguments,
-//         env,
-//         state,
-//         Some(target_collection_alias.clone()),
-//     )
-// }
-
-// /// Build a 'SELECT' query for a `PathElement` using the relationship of the path element,
-// /// the predicate, the from clause and the select list.
-// fn select_for_path_element(
-//     env: &Env,
-//     state: &mut State,
-//     root_and_current_tables: &RootAndCurrentTables,
-//     relationship: &models::Relationship,
-//     predicate: &Option<Box<models::Expression>>,
-//     select_list: sql::ast::SelectList,
-//     (join_table, from_clause): (TableNameAndReference, sql::ast::From),
-// ) -> Result<sql::ast::Select, Error> {
-//     // build a select query from this table where join condition.
-//     let mut select = sql::helpers::simple_select(vec![]);
-//     select.select_list = select_list;
-//     select.from = Some(from_clause);
-
-//     match predicate {
-//         None => Ok(select),
-//         Some(predicate) => {
-//             // generate a condition for the predicate.
-//             let predicate_tables = RootAndCurrentTables {
-//                 root_table: root_and_current_tables.root_table.clone(),
-//                 current_table: join_table,
-//             };
-//             let predicate_expr =
-//                 filtering::translate_expression(env, state, &predicate_tables, predicate)?;
-
-//             // generate a condition for this join.
-//             let join_condition = relationships::translate_column_mapping(
-//                 env,
-//                 &root_and_current_tables.current_table,
-//                 &predicate_tables.current_table.reference,
-//                 sql::helpers::empty_where(),
-//                 relationship,
-//             )?;
-
-//             select.where_ = sql::ast::Where(sql::ast::Expression::And {
-//                 left: Box::new(join_condition),
-//                 right: Box::new(predicate_expr),
-//             });
-
-//             Ok(select)
-//         }
-//     }
-// }

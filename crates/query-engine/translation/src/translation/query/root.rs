@@ -4,12 +4,9 @@ use std::collections::BTreeMap;
 
 use indexmap::IndexMap;
 
-use ndc_models::CollectionName;
 use ndc_models as models;
 use query_engine_sql::sql::ast::ReturnsFields;
-use query_engine_sql::sql::ast::TableName;
 
-use super::aggregates;
 use super::fields;
 use super::filtering;
 use super::sorting;
@@ -37,23 +34,9 @@ pub fn translate_query(
     //     translate_aggregate_select(env, state, make_from, join_predicate, query_request)?;
 
     // Create a structure describing the selection set - only rows, only aggregates, or both.
-    let select_set = match ((&returns_field, row_select)) {
-        // Both.
-        // ((ReturnsFields::FieldsWereRequested, rows)) => 
-        // todo!("aggreagates not supported"),
-        // // (
-        // //     ReturnsFields::FieldsWereRequested,
-        // //     sql::helpers::SelectSet::RowsAndAggregates(rows, aggregates),
-        // // ),
-        // // Only aggregates.
-        // ((ReturnsFields::NoFieldsWereRequested, _)) => 
-        // todo!("aggreagates not supported"),
-        // // (
-        // //     ReturnsFields::NoFieldsWereRequested,
-        // //     sql::helpers::SelectSet::Aggregates(aggregates),
-        // // ),
+    let select_set = match (&returns_field, row_select) {
         // // Only rows or Neither (This is valid. Returns empty objects).
-        ((_, rows)) => (query_request.limit, returns_field, sql::helpers::SelectSet::Rows(rows)), // no fields selected.
+        (_, rows) => (query_request.limit, returns_field, sql::helpers::SelectSet::Rows(rows)), // no fields selected.
                                                                                    // (
                                                                                    //     (ReturnsFields::NoFieldsWereRequested, rows),
                                                                                    //     None
@@ -69,52 +52,6 @@ pub fn translate_query(
 
     Ok(select_set)
 }
-
-// /// Translate aggregates query to sql ast.
-// fn translate_aggregate_select(
-//     env: &Env,
-//     state: &mut State,
-//     make_from: &MakeFrom,
-//     join_predicate: &Option<JoinPredicate<'_, '_>>,
-//     query: &models::Query,
-// ) -> Result<Option<sql::ast::Select>, Error> {
-//     // fail if no aggregates defined at all
-//     match &query.aggregates {
-//         None => Ok(None),
-//         Some(aggregate_fields) => {
-//             let (table, from_clause) = make_reference_and_from_clause(env, state, make_from)?;
-//             let mut inner_query =
-//                 sql::helpers::star_from_select(TableName(table.name.clone().as_str().to_string()), from_clause);
-
-//             // Translate the common part of the query - where, order by, limit, etc.
-//             translate_query_part(env, state, &table, join_predicate, query, &mut inner_query)?;
-
-//             // Aggregate queries can't contain where, order by, and limit stuff on the same level.
-//             // So we wrap this query part in another query that performs the aggregation.
-
-//             // Create a from clause selecting from the inner query.
-//             let from_alias = state.make_table_alias(table.name.to_string());
-//             let from = sql::ast::From::Select {
-//                 select: Box::new(inner_query),
-//                 // alias: from_alias.clone(),
-//             };
-//             let current_table = TableNameAndReference {
-//                 name: table.name,
-//                 // reference: sql::ast::TableReference::AliasedTable(from_alias),
-//             };
-
-//             // create all aggregate columns
-//             let aggregate_columns =
-//                 aggregates::translate(&current_table.reference, aggregate_fields)?;
-
-//             // construct a simple select with the table name, alias, and selected columns.
-//             let mut columns_select = sql::helpers::simple_select(aggregate_columns);
-//             columns_select.from = Some(from);
-
-//             Ok(Some(columns_select))
-//         }
-//     }
-// }
 
 /// Translate rows part of query to sql ast.
 fn translate_rows_select(
@@ -153,25 +90,11 @@ fn translate_rows_select(
                 with: sql::helpers::empty_with(),
                 select_list: select_1,
                 from: Some(from_clause),
-                // joins: vec![],
                 where_: sql::ast::Where(sql::helpers::empty_where()),
-                // group_by: sql::helpers::empty_group_by(),
                 order_by: sql::helpers::empty_order_by(),
-                // limit: sql::helpers::empty_limit(),
             }
         }
     };
-
-    // // translate fields to columns or relationships.
-    // let mut fields_select = fields::translate_fields(
-    //     env,
-    //     state,
-    //     fields,
-    //     &current_table,
-    //     from_clause,
-    //     &mut join_relationship_fields,
-    //     returns_fields.clone(),
-    // )?;
 
     // Translate the common part of the query - where, order by, limit, etc.
     translate_query_part(
@@ -182,12 +105,6 @@ fn translate_rows_select(
         query,
         &mut fields_select,
     )?;
-
-    // // collect any joins for relationships from fields selection.
-    // let relationship_joins =
-    //     relationships::translate_joins(env, state, &current_table, join_relationship_fields)?;
-
-    // fields_select.joins.extend(relationship_joins);
 
     Ok((returns_fields, fields_select))
 }
@@ -201,7 +118,7 @@ pub fn translate_query_part(
     env: &Env,
     state: &mut State,
     current_table: &TableNameAndReference,
-    join_predicate: &Option<JoinPredicate<'_, '_>>,
+    _join_predicate: &Option<JoinPredicate<'_, '_>>,
     query: &models::Query,
     select: &mut sql::ast::Select,
 ) -> Result<(), Error> {
@@ -212,7 +129,7 @@ pub fn translate_query_part(
     };
 
     // translate order_by
-    let (order_by, order_by_joins) =
+    let (order_by, _order_by_joins) =
         sorting::translate_order_by(env, state, &root_and_current_tables, &query.order_by)?;
 
     // select.joins.extend(order_by_joins);
@@ -227,31 +144,7 @@ pub fn translate_query_part(
 
     select.where_ = sql::ast::Where(filter);
 
-    // // Apply a join predicate if we want one.
-    // match join_predicate {
-    //     // Only apply the existing filter.
-    //     None => {
-    //         select.where_ = sql::ast::Where(filter);
-    //     }
-    //     Some(join_predicate) => {
-    //         // Apply the join predicate.
-    //         select.where_ = sql::ast::Where(relationships::translate_column_mapping(
-    //             env,
-    //             join_predicate.join_with,
-    //             &current_table.reference,
-    //             filter, // AND with the existing filter.
-    //             join_predicate.relationship,
-    //         )?);
-    //     }
-    // }
-
     select.order_by = order_by;
-
-    // // Add the limit.
-    // select.limit = sql::ast::Limit {
-    //     limit: query.limit,
-    //     offset: query.offset,
-    // };
 
     Ok(())
 }
@@ -260,14 +153,13 @@ pub fn translate_query_part(
 pub fn make_from_clause_and_reference(
     collection_name: &models::CollectionName,
     gsi_name: Option<sql::ast::Gsi>,
-    // arguments: &BTreeMap<models::ArgumentName, models::Argument>,
     env: &Env,
     state: &mut State,
     collection_alias: Option<sql::ast::TableAlias>,
 ) -> Result<(TableNameAndReference, sql::ast::From), Error> {
     let collection_alias = match collection_alias {
         None => state.make_table_alias(collection_name.to_string()),
-        Some(alias) => todo!("alias not supported"),
+        Some(_alias) => todo!("alias not supported"),
     };
     // find the table according to the metadata.
     let collection_info = env.lookup_collection(collection_name)?;
@@ -284,16 +176,14 @@ pub fn make_from_clause_and_reference(
 /// Build a FROM clause from a collection info and an alias.
 /// Will add a Native Query to the 'State' if the collection is a native query.
 fn make_from_clause(
-    state: &mut State,
+    _state: &mut State,
     current_table_alias: &sql::ast::TableAlias,
     collection_info: &CollectionInfo,
     gsi_name: Option<sql::ast::Gsi>,
-    // arguments: &BTreeMap<models::ArgumentName, models::Argument>,
 ) -> sql::ast::From {
     match collection_info {
         CollectionInfo::Table { info, .. } => {
             let db_table = sql::ast::TableReference::DBTable {
-                // schema: sql::ast::SchemaName(info.schema_name.clone()),
                 table: sql::ast::TableName(info.table_name.clone()),
                 gsi: gsi_name,
             };
@@ -302,13 +192,6 @@ fn make_from_clause(
                 alias: current_table_alias.clone(),
             }
         }
-        // CollectionInfo::NativeQuery { name, info } => {
-        //     let aliased_table = state.insert_native_query(name, (*info).clone(), arguments.clone());
-        //     sql::ast::From::Table {
-        //         reference: aliased_table,
-        //         alias: current_table_alias.clone(),
-        //     }
-        // }
     }
 }
 
@@ -346,7 +229,7 @@ fn make_reference_and_from_clause(
     make_from: &MakeFrom,
 ) -> Result<(TableNameAndReference, sql::ast::From), Error> {
     match make_from {
-        MakeFrom::Collection { name, gsi, arguments } => {
+        MakeFrom::Collection { name, gsi, arguments: _ } => {
             make_from_clause_and_reference(name, gsi.clone(), env, state, None)
         }
         MakeFrom::TableReference { name, reference } => {

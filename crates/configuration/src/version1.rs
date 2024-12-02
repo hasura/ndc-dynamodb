@@ -1,32 +1,20 @@
 //! Internal Configuration and state for our connector.
 
-use crate::{connection_settings, AccessKeyId, ProviderName, SecretAccessKey};
+use crate::{connection_settings, AccessKeyId, SecretAccessKey};
 use crate::environment::Environment;
 use crate::error::WriteParsedConfigurationError;
-use crate::values::{PoolSettings, Secret};
+use crate::values::Secret;
 
 use super::error::ParseConfigurationError;
-use aws_config::meta::region::RegionProviderChain;
-// use aws_config::Region;
-// use aws_smithy_http::endpoint::Endpoint;
-use aws_sdk_dynamodb::operation::list_tables;
-use aws_sdk_dynamodb::types::{GlobalSecondaryIndex, KeyType, ProjectionType};
+use aws_sdk_dynamodb::types::KeyType;
 use aws_sdk_dynamodb::Config;
-use ndc_models::{AggregateFunctionName, CollectionName, ComparisonOperatorName, FieldName, ScalarTypeName, TypeName};
+use ndc_models::{CollectionName, ComparisonOperatorName, FieldName, ScalarTypeName};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use std::process::exit;
 use tokio::fs;
-
-use aws_sdk_dynamodb::config::Builder;
-// use aws_sdk_dynamodb::Endpoint;
-// use aws_sdk_dynamodb::Region;
-
-//TODO(PY): temp, needs to be removed from the crate
-// use ndc_sdk::connector;
 
 use query_engine_metadata::metadata::{self, database, ColumnInfo, Nullable, ProjectionTypeInfo, ScalarTypes, TablesInfo};
 
@@ -35,7 +23,6 @@ pub const CONFIGURATION_FILENAME: &str = "configuration.json";
 const CHARACTER_STRINGS: [&str; 3] = ["character", "text", "string"];
 const UNICODE_CHARACTER_STRINGS: [&str; 3] = ["nchar", "ntext", "nvarchar"];
 const CANNOT_COMPARE: [&str; 3] = ["text", "ntext", "image"];
-// const CONFIGURATION_JSONSCHEMA_FILENAME: &str = "schema.json";
 
 
 /// Initial configuration, just enough to connect to a database and elaborate a full

@@ -16,11 +16,10 @@ use query_engine_sql::sql;
 /// 'translate_nested_field'.
 pub(crate) fn translate_fields(
     env: &Env,
-    state: &mut State,
+    _state: &mut State,
     fields: IndexMap<models::FieldName, models::Field>,
     current_table: &TableNameAndReference,
     from: sql::ast::From,
-    // join_relationship_fields: &mut Vec<relationships::JoinFieldInfo>,
 ) -> Result<sql::ast::Select, Error> {
     // find the table according to the metadata.
     let fields_info = env.lookup_fields_info(&current_table.name)?;
@@ -47,57 +46,12 @@ pub(crate) fn translate_fields(
                 UnsupportedCapabilities::FieldArguments,
             )),
             ndc_models::Field::Relationship { .. } => todo!(),
-            // models::Field::Relationship {
-            //     query,
-            //     relationship,
-            //     arguments,
-            // } => {
-            //     let table_alias = state.make_relationship_table_alias(alias.as_str());
-            //     let column_alias = sql::helpers::make_column_alias(alias.to_string());
-            //     let column_name = sql::ast::ColumnReference::AliasedColumn {
-            //         table: sql::ast::TableReference::AliasedTable(table_alias.clone()),
-            //         column: column_alias.clone(),
-            //     };
-            //     // join_relationship_fields.push(relationships::JoinFieldInfo {
-            //     //     table_alias,
-            //     //     column_alias: column_alias.clone(),
-            //     //     relationship_name: relationship,
-            //     //     arguments,
-            //     //     query: *query,
-            //     // });
-            //     Ok((
-            //         column_alias,
-            //         sql::ast::Expression::ColumnReference(column_name),
-            //     ))
-            // }
         })
         .collect::<Result<Vec<_>, Error>>()?;
 
         let mut select = sql::helpers::simple_select(columns);
 
     select.from = Some(from);
-
-    // let select_final = match returns_field {
-    //     ReturnsFields::FieldsWereRequested => {
-    //         (select)
-    //     }
-    //     ReturnsFields::NoFieldsWereRequested => {
-    //         // If fields were requested, we need to return the fields as they are.
-    //         // This is the default behavior.
-    //         let select_1 = sql::ast::SelectList::Select1;
-    //         let select = sql::ast::Select {
-    //             with: sql::helpers::empty_with(),
-    //             select_list: select_1,
-    //             from: Some(from),
-    //             joins: vec![],
-    //             where_: sql::ast::Where(sql::helpers::empty_where()),
-    //             group_by:sql::helpers::empty_group_by(),
-    //             order_by: sql::helpers::empty_order_by(),
-    //             limit: sql::helpers::empty_limit(),
-    //         };
-    //         select
-    //     }
-    // };
 
     Ok(select)
 }
