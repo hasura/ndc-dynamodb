@@ -153,7 +153,8 @@ async fn update(context: Context<impl Environment>) -> anyhow::Result<()> {
         let existing_configuration =
             configuration::parse_configuration(&context.context_path).await?;
         let output =
-            configuration::introspect(&existing_configuration.clone(), &context.environment).await?;
+            configuration::introspect(&existing_configuration.clone(), &context.environment)
+                .await?;
 
         // Check that the input file did not change since we started introspecting,
         let input_again_before_write =

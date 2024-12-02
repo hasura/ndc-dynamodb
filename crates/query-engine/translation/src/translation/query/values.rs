@@ -26,8 +26,7 @@ pub fn translate_json_value(
                 .ok_or(Error::UnableToDeserializeNumberAsF64(n.clone()))?;
             Ok(Expression::Value(Value::Float8(lit)))
         }
-        (serde_json::Value::String(str), _) => 
-            Ok(Expression::Value(Value::String(str.clone()))),
+        (serde_json::Value::String(str), _) => Ok(Expression::Value(Value::String(str.clone()))),
         // Ok(Expression::Cast {
         //     expression: Box::new(Expression::Value(Value::String(str.clone()))),
         //     r#type: type_to_ast_scalar_type(env, r#type)?,
@@ -76,9 +75,9 @@ fn type_to_ast_scalar_type_name(
         query_engine_metadata::metadata::Type::ScalarType(t) => {
             let scalar_type: &query_engine_metadata::metadata::ScalarType =
                 env.lookup_scalar_type(t)?;
-                Ok(sql::ast::ScalarTypeName::Unqualified(
-                            scalar_type.type_name.to_string(),
-                        ))
+            Ok(sql::ast::ScalarTypeName::Unqualified(
+                scalar_type.type_name.to_string(),
+            ))
             // match scalar_type.schema_name.clone() {
             //     None => Ok(sql::ast::ScalarTypeName::Unqualified(
             //         scalar_type.type_name.to_string(),

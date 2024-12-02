@@ -309,116 +309,116 @@ pub fn translate_expression_with_joins(
 //     let mut joins = vec![];
 //     let RootAndCurrentTables { current_table, .. } = root_and_current_tables;
 
-    // let final_ref = path.iter().try_fold(
-    //     current_table.clone(),
-    //     |current_table_ref,
-    //      models::PathElement {
-    //          relationship,
-    //          predicate,
-    //          arguments,
-    //      }| {
-    //         // // get the relationship table
-    //         // let relationship_name = &relationship;
-    //         // let relationship = env.lookup_relationship(relationship_name)?;
+// let final_ref = path.iter().try_fold(
+//     current_table.clone(),
+//     |current_table_ref,
+//      models::PathElement {
+//          relationship,
+//          predicate,
+//          arguments,
+//      }| {
+//         // // get the relationship table
+//         // let relationship_name = &relationship;
+//         // let relationship = env.lookup_relationship(relationship_name)?;
 
-    //         // new alias for the target table
-    //         // let target_table_alias: sql::ast::TableAlias =
-    //         //     state.make_boolean_expression_table_alias(relationship.target_collection.as_str());
+//         // new alias for the target table
+//         // let target_table_alias: sql::ast::TableAlias =
+//         //     state.make_boolean_expression_table_alias(relationship.target_collection.as_str());
 
-    //         // let arguments = relationships::make_relationship_arguments(
-    //         //     relationships::MakeRelationshipArguments {
-    //         //         caller_arguments: arguments.clone(),
-    //         //         relationship_arguments: relationship.arguments.clone(),
-    //         //     },
-    //         // )?;
+//         // let arguments = relationships::make_relationship_arguments(
+//         //     relationships::MakeRelationshipArguments {
+//         //         caller_arguments: arguments.clone(),
+//         //         relationship_arguments: relationship.arguments.clone(),
+//         //     },
+//         // )?;
 
-    //         // // create a from clause and get a reference of inner query.
-    //         // let (table, from_clause) = root::make_from_clause_and_reference(
-    //         //     &relationship.target_collection,
-    //         //     &arguments,
-    //         //     env,
-    //         //     state,
-    //         //     Some(target_table_alias.clone()),
-    //         // )?;
+//         // // create a from clause and get a reference of inner query.
+//         // let (table, from_clause) = root::make_from_clause_and_reference(
+//         //     &relationship.target_collection,
+//         //     &arguments,
+//         //     env,
+//         //     state,
+//         //     Some(target_table_alias.clone()),
+//         // )?;
 
-    //         // // build a SELECT querying this table with the relevant predicate.
-    //         let mut select = sql::helpers::simple_select(vec![]);
-    //         // select.from = Some(from_clause);
+//         // // build a SELECT querying this table with the relevant predicate.
+//         let mut select = sql::helpers::simple_select(vec![]);
+//         // select.from = Some(from_clause);
 
-    //         select.select_list = sql::ast::SelectList::SelectStar;
+//         select.select_list = sql::ast::SelectList::SelectStar;
 
-    //         let new_root_and_current_tables = RootAndCurrentTables {
-    //             root_table: root_and_current_tables.root_table.clone(),
-    //             current_table: TableNameAndReference {
-    //                 reference: table.reference.clone(),
-    //                 name: table.name.clone(),
-    //             },
-    //         };
-    //         // relationship-specfic filter
-    //         let (rel_cond, rel_joins) = match predicate {
-    //             None => (sql::helpers::true_expr(), vec![]),
-    //             Some(predicate) => translate_expression_with_joins(
-    //                 env,
-    //                 state,
-    //                 &new_root_and_current_tables,
-    //                 predicate,
-    //             )?,
-    //         };
+//         let new_root_and_current_tables = RootAndCurrentTables {
+//             root_table: root_and_current_tables.root_table.clone(),
+//             current_table: TableNameAndReference {
+//                 reference: table.reference.clone(),
+//                 name: table.name.clone(),
+//             },
+//         };
+//         // relationship-specfic filter
+//         let (rel_cond, rel_joins) = match predicate {
+//             None => (sql::helpers::true_expr(), vec![]),
+//             Some(predicate) => translate_expression_with_joins(
+//                 env,
+//                 state,
+//                 &new_root_and_current_tables,
+//                 predicate,
+//             )?,
+//         };
 
-    //         // relationship where clause
-    //         let cond = relationships::translate_column_mapping(
-    //             env,
-    //             &current_table_ref,
-    //             &table.reference,
-    //             rel_cond,
-    //             relationship,
-    //         )?;
+//         // relationship where clause
+//         let cond = relationships::translate_column_mapping(
+//             env,
+//             &current_table_ref,
+//             &table.reference,
+//             rel_cond,
+//             relationship,
+//         )?;
 
-    //         select.where_ = sql::ast::Where(cond);
+//         select.where_ = sql::ast::Where(cond);
 
-    //         select.joins = rel_joins;
+//         select.joins = rel_joins;
 
-    //         joins.push(sql::ast::Join::InnerJoin(sql::ast::InnerJoin {
-    //             select: Box::new(select),
-    //             alias: target_table_alias,
-    //         }));
+//         joins.push(sql::ast::Join::InnerJoin(sql::ast::InnerJoin {
+//             select: Box::new(select),
+//             alias: target_table_alias,
+//         }));
 
-    //         Ok(new_root_and_current_tables.current_table)
-    //     },
-    // )?;
+//         Ok(new_root_and_current_tables.current_table)
+//     },
+// )?;
 
-    // let mut joins: VecDeque<_> = joins.into();
-    // match joins.pop_front() {
-    //     None => Ok((final_ref, vec![])),
+// let mut joins: VecDeque<_> = joins.into();
+// match joins.pop_front() {
+//     None => Ok((final_ref, vec![])),
 
-    //     // If we are fetching a nested column (we have joins), we wrap them in a select that fetches
-    //     // columns from the last table in the chain.
-    //     Some(first) => {
-    //         let mut outer_select = sql::helpers::simple_select(vec![]);
-    //         outer_select.select_list = sql::ast::SelectList::SelectStarFrom(final_ref.reference);
-    //         let (select, alias) = first.get_select_and_alias();
-    //         outer_select.from = Some(sql::ast::From::Select { select, alias });
-    //         outer_select.joins = joins.into();
+//     // If we are fetching a nested column (we have joins), we wrap them in a select that fetches
+//     // columns from the last table in the chain.
+//     Some(first) => {
+//         let mut outer_select = sql::helpers::simple_select(vec![]);
+//         outer_select.select_list = sql::ast::SelectList::SelectStarFrom(final_ref.reference);
+//         let (select, alias) = first.get_select_and_alias();
+//         outer_select.from = Some(sql::ast::From::Select { select, alias });
+//         outer_select.joins = joins.into();
 
-    //         let alias = state.make_boolean_expression_table_alias(final_ref.name.as_str());
-    //         let reference = sql::ast::TableReference::AliasedTable(alias.clone());
+//         let alias = state.make_boolean_expression_table_alias(final_ref.name.as_str());
+//         let reference = sql::ast::TableReference::AliasedTable(alias.clone());
 
-    //         Ok((
-    //             TableNameAndReference {
-    //                 reference,
-    //                 name: final_ref.name.clone(),
-    //             },
-    //             // create a join from the select.
-    //             // We use a full outer join so even if one of the sides does not contain rows,
-    //             // We can still select values.
-    //             // See a more elaborated explanation: https://github.com/hasura/ndc-postgres/pull/463#discussion_r1601884534
-    //             vec![sql::ast::Join::FullOuterJoin(sql::ast::FullOuterJoin {
-    //                 select: Box::new(outer_select),
-    //                 alias,
-    //             })],
-    //         ))
-    //     }
-    // }
+//         Ok((
+//             TableNameAndReference {
+//                 reference,
+//                 name: final_ref.name.clone(),
+//             },
+//             // create a join from the select.
+//             // We use a full outer join so even if one of the sides does not contain rows,
+//             // We can still select values.
+//             // See a more elaborated explanation: https://github.com/hasura/ndc-postgres/pull/463#discussion_r1601884534
+//             vec![sql::ast::Join::FullOuterJoin(sql::ast::FullOuterJoin {
+//                 select: Box::new(outer_select),
+//                 alias,
+//             })],
+//         ))
+//     }
+// }
 // }
 
 /// translate a comparison target.
@@ -491,7 +491,7 @@ fn translate_comparison_value(
             values::translate_json_value(env, state, json_value, typ)?,
             vec![],
         )),
-        models::ComparisonValue::Variable { name: _ } => todo!("Variables are not supported")
+        models::ComparisonValue::Variable { name: _ } => todo!("Variables are not supported"),
     }
 }
 
@@ -510,7 +510,6 @@ pub fn translate_exists_in_collection(
             collection,
             arguments: _,
         } => {
-
             // create a from clause and get a reference of inner query.
             let (table, from_clause) =
                 root::make_from_clause_and_reference(&collection, None, env, state, None)?;
@@ -588,7 +587,6 @@ fn get_comparison_target_type(
             path,
             field_path,
         } => {
-            
             let mut field_path = match field_path {
                 None => VecDeque::new(),
                 Some(field_path) => field_path.iter().collect(),

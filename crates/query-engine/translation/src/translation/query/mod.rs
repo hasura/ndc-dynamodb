@@ -29,15 +29,15 @@ pub fn translate(
     );
 
     let collection_string = query_request.collection.as_str();
-    let collection = if collection_string.contains(":") {
-        let split: Vec<&str> = collection_string.split(":").collect();
+    let collection = if collection_string.contains(':') {
+        let split: Vec<&str> = collection_string.split(':').collect();
         if split.len() != 2 {
             return Err(Error::InvalidCollectionName(collection_string.to_string()));
         };
         let collection_name = models::CollectionName::new(split[0].into());
         let gsi_name = split[1];
         (collection_name, Some(sql::ast::Gsi(gsi_name.to_string())))
-        // coll_name = 
+        // coll_name =
     } else {
         (models::CollectionName::new(collection_string.into()), None)
     };

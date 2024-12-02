@@ -33,15 +33,15 @@ pub async fn create_state(
     let region = configuration.region.clone();
 
     let credentials = aws_sdk_dynamodb::config::Credentials::new(
-        access_key_id.to_string(),
-        secret_access_key.to_string(),
-        None,           // Optional session token
-        None,           // Expiration (None for non-expiring)
-        "my-provider",  // Provider name
+        access_key_id,
+        secret_access_key,
+        None,          // Optional session token
+        None,          // Expiration (None for non-expiring)
+        "my-provider", // Provider name
     );
 
     let config = Config::builder()
-        .region(aws_config::Region::new(region.to_string()))
+        .region(aws_config::Region::new(region))
         .credentials_provider(credentials)
         .build();
 
@@ -55,10 +55,7 @@ pub async fn create_state(
     // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
     let client = aws_sdk_dynamodb::Client::from_conf(config);
 
-    Ok(State {
-        metrics,
-        client,
-    })
+    Ok(State { metrics, client })
 }
 
 /// State initialization error.

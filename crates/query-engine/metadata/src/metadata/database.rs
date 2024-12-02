@@ -115,7 +115,6 @@ pub struct TableInfo {
     pub sort_key: String,
 
     // pub uniqueness_constraints: UniquenessConstraints,
-
     pub gsi: GlobalSecondaryIndexes,
 
     pub description: Option<String>,

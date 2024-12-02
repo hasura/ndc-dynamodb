@@ -1,6 +1,6 @@
 //! Database connection settings.
 
-use crate::values::{Secret, AccessKeyId, SecretAccessKey, Region};
+use crate::values::{AccessKeyId, Region, Secret, SecretAccessKey};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

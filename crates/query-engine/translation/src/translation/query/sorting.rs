@@ -95,9 +95,7 @@ struct Column(models::FieldName);
 #[derive(Debug)]
 enum Aggregate {
     CountStarAggregate,
-    SingleColumnAggregate {
-        column: models::FieldName,
-    },
+    SingleColumnAggregate { column: models::FieldName },
 }
 
 impl OrderByElementGroup<'_> {

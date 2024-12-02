@@ -4,7 +4,7 @@
 use super::version1::ParsedConfiguration;
 use crate::environment::Environment;
 use crate::error::MakeRuntimeConfigurationError;
-use crate::values::{Secret, AccessKeyId, Region, SecretAccessKey};
+use crate::values::{AccessKeyId, Region, Secret, SecretAccessKey};
 use query_engine_metadata::{self, metadata};
 // use crate::VersionTag;
 

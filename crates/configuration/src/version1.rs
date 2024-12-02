@@ -1,9 +1,9 @@
 //! Internal Configuration and state for our connector.
 
-use crate::{connection_settings, AccessKeyId, SecretAccessKey};
 use crate::environment::Environment;
 use crate::error::WriteParsedConfigurationError;
 use crate::values::Secret;
+use crate::{connection_settings, AccessKeyId, SecretAccessKey};
 
 use super::error::ParseConfigurationError;
 use aws_sdk_dynamodb::types::KeyType;
@@ -16,14 +16,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use tokio::fs;
 
-use query_engine_metadata::metadata::{self, database, ColumnInfo, Nullable, ProjectionTypeInfo, ScalarTypes, TablesInfo};
+use query_engine_metadata::metadata::{
+    self, database, ColumnInfo, Nullable, ProjectionTypeInfo, ScalarTypes, TablesInfo,
+};
 
 const CURRENT_VERSION: u32 = 1;
 pub const CONFIGURATION_FILENAME: &str = "configuration.json";
 const CHARACTER_STRINGS: [&str; 3] = ["character", "text", "string"];
 const UNICODE_CHARACTER_STRINGS: [&str; 3] = ["nchar", "ntext", "nvarchar"];
 const CANNOT_COMPARE: [&str; 3] = ["text", "ntext", "image"];
-
 
 /// Initial configuration, just enough to connect to a database and elaborate a full
 /// 'Configuration'.
@@ -68,11 +69,15 @@ pub async fn introspect(
 ) -> anyhow::Result<ParsedConfiguration> {
     let access_key_id = match &args.connection_settings.access_key_id {
         AccessKeyId(Secret::Plain(value)) => Cow::Borrowed(value),
-        AccessKeyId(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+        AccessKeyId(Secret::FromEnvironment { variable }) => {
+            Cow::Owned(environment.read(variable)?)
+        }
     };
     let secret_access_key = match &args.connection_settings.secret_access_key {
         SecretAccessKey(Secret::Plain(value)) => Cow::Borrowed(value),
-        SecretAccessKey(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+        SecretAccessKey(Secret::FromEnvironment { variable }) => {
+            Cow::Owned(environment.read(variable)?)
+        }
     };
     // let provider_name = match &args.connection_settings.provider_name {
     //     ProviderName(Secret::Plain(value)) => Cow::Borrowed(value),
@@ -80,7 +85,9 @@ pub async fn introspect(
     // };
     let region = match &args.connection_settings.region {
         crate::Region(Secret::Plain(value)) => Cow::Borrowed(value),
-        crate::Region(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
+        crate::Region(Secret::FromEnvironment { variable }) => {
+            Cow::Owned(environment.read(variable)?)
+        }
     };
     // let access_key_id = args.connection_settings.access_key_id.clone();
     // let secret_access_key = args.connection_settings.secret_access_key.clone();
@@ -90,16 +97,16 @@ pub async fn introspect(
     let credentials = aws_sdk_dynamodb::config::Credentials::new(
         access_key_id.to_string(),
         secret_access_key.to_string(),
-        None,           // Optional session token
-        None,           // Expiration (None for non-expiring)
-        "my-provider",  // Provider name
+        None,          // Optional session token
+        None,          // Expiration (None for non-expiring)
+        "my-provider", // Provider name
     );
-    
+
     // Configure AWS SDK with explicit credentials
     let config = Config::builder()
-    .region(aws_config::Region::new(region.to_string()))
-    .credentials_provider(credentials)
-    .build();
+        .region(aws_config::Region::new(region.to_string()))
+        .credentials_provider(credentials)
+        .build();
 
     // To use localhost url
     // let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
@@ -114,13 +121,12 @@ pub async fn introspect(
     let client = aws_sdk_dynamodb::Client::from_conf(config);
     let tables_result = client.list_tables().send().await;
     // dbg!(&tables_result);
-    let tables = tables_result.map_err(|_op| {
-        ParseConfigurationError::IoErrorButStringified(format!(
-            "Failed to list tables:",
-            // op.error_message.unwrap()
-        ))
-    }).unwrap(); //TODO: handle error
-    // dbg!(&tables);
+    let tables = tables_result
+        .map_err(|_op| {
+            ParseConfigurationError::IoErrorButStringified("Failed to list tables:".to_string())
+        })
+        .unwrap(); //TODO: handle error
+                   // dbg!(&tables);
     let table_names = tables.table_names.unwrap_or_default();
     let mut scalars_list: BTreeSet<ScalarTypeName> = BTreeSet::new();
     let mut tables_info: BTreeMap<CollectionName, metadata::TableInfo> = BTreeMap::new();
@@ -147,7 +153,6 @@ pub async fn introspect(
                 // "NULL" => ScalarTypeName::new("Null".into()),
                 // "M" => ScalarTypeName::new("Object".into()),
                 // "L" => ScalarTypeName::new("Array".into()),
-
                 _ => ScalarTypeName::new("Any".into()),
             };
             scalars_list.insert(scalar_type_name.clone());
@@ -163,18 +168,13 @@ pub async fn introspect(
 
         //get non key attributes
         let result = client
-                .execute_statement()
-                .statement(
-                    format!(
-                        r#"select * from {}"#,
-                        table_name
-                    )
-                )
-                .set_parameters(None)
-                .set_limit(Some(20))
-                .send()
-                .await
-                .unwrap();
+            .execute_statement()
+            .statement(format!(r#"select * from {table_name}"#))
+            .set_parameters(None)
+            .set_limit(Some(20))
+            .send()
+            .await
+            .unwrap();
 
         // let result = match row_1
         // {
@@ -190,29 +190,25 @@ pub async fn introspect(
         // dbg!(&result);
 
         // let row = result.first().unwrap();
-        for item in result.items.unwrap().iter() {
+        for item in &result.items.unwrap() {
             for (key, attribute_value) in item {
                 let column_name = FieldName::new(key.clone().into());
                 // dbg!(&column_name);
-                let column_type = 
-                    if attribute_value.is_s() {
-                        let scalar_type_name = ScalarTypeName::new("String".into());
-                        scalars_list.insert(scalar_type_name.clone());
-                        metadata::Type::ScalarType(scalar_type_name)
-                    }
-                    else if attribute_value.is_n() {
-                        let scalar_type_name = ScalarTypeName::new("Number".into());
-                        scalars_list.insert(scalar_type_name.clone());
-                        metadata::Type::ScalarType(scalar_type_name)
-                    }
-                    else if attribute_value.is_bool() {
-                        let scalar_type_name = ScalarTypeName::new("Boolean".into());
-                        scalars_list.insert(scalar_type_name.clone());
-                        metadata::Type::ScalarType(scalar_type_name)
-                    }
-                    else {
-                        metadata::Type::ScalarType(ScalarTypeName::new("Any".into()))
-                    };
+                let column_type = if attribute_value.is_s() {
+                    let scalar_type_name = ScalarTypeName::new("String".into());
+                    scalars_list.insert(scalar_type_name.clone());
+                    metadata::Type::ScalarType(scalar_type_name)
+                } else if attribute_value.is_n() {
+                    let scalar_type_name = ScalarTypeName::new("Number".into());
+                    scalars_list.insert(scalar_type_name.clone());
+                    metadata::Type::ScalarType(scalar_type_name)
+                } else if attribute_value.is_bool() {
+                    let scalar_type_name = ScalarTypeName::new("Boolean".into());
+                    scalars_list.insert(scalar_type_name.clone());
+                    metadata::Type::ScalarType(scalar_type_name)
+                } else {
+                    metadata::Type::ScalarType(ScalarTypeName::new("Any".into()))
+                };
                 let column_info = ColumnInfo {
                     name: key.clone(),
                     r#type: column_type,
@@ -220,10 +216,8 @@ pub async fn introspect(
                     description: None,
                 };
                 columns_info.insert(column_name, column_info);
-
             }
-    }
-
+        }
 
         //
         let mut key_info: BTreeMap<KeyType, String> = BTreeMap::new();
@@ -239,7 +233,7 @@ pub async fn introspect(
         let partition_key = key_info.get(&KeyType::Hash).unwrap();
         let sort_key = key_info.get(&KeyType::Range).unwrap();
 
-        let mut gsi_indexes:BTreeMap<String, metadata::GlobalSecondaryIndexInfo>  = BTreeMap::new();
+        let mut gsi_indexes: BTreeMap<String, metadata::GlobalSecondaryIndexInfo> = BTreeMap::new();
         let gsis = table.global_secondary_indexes.unwrap();
         for gsi in gsis {
             let index_name = gsi.index_name.unwrap();
@@ -248,7 +242,7 @@ pub async fn introspect(
             for key in index_keys {
                 let name = key.attribute_name;
                 let key_type = key.key_type;
-    
+
                 if key_type == KeyType::Hash || key_type == KeyType::Range {
                     index_keys_info.insert(key_type, name);
                 }
@@ -256,16 +250,30 @@ pub async fn introspect(
             let partition_key = index_keys_info.get(&KeyType::Hash).unwrap();
             let sort_key: Option<String> = index_keys_info.get(&KeyType::Range).cloned();
 
-            let projection_type = gsi.projection.clone().unwrap().projection_type.unwrap().as_str().to_string();
-            let non_key_attributes = gsi.projection.unwrap().non_key_attributes.unwrap_or_default();
-            gsi_indexes.insert(index_name, metadata::GlobalSecondaryIndexInfo {
-                partition_key: partition_key.to_owned(),
-                sort_key,
-                projection_type: ProjectionTypeInfo {
-                    projection_type,
-                    non_key_attributes,
-                }
-            });
+            let projection_type = gsi
+                .projection
+                .clone()
+                .unwrap()
+                .projection_type
+                .unwrap()
+                .as_str()
+                .to_string();
+            let non_key_attributes = gsi
+                .projection
+                .unwrap()
+                .non_key_attributes
+                .unwrap_or_default();
+            gsi_indexes.insert(
+                index_name,
+                metadata::GlobalSecondaryIndexInfo {
+                    partition_key: partition_key.to_owned(),
+                    sort_key,
+                    projection_type: ProjectionTypeInfo {
+                        projection_type,
+                        non_key_attributes,
+                    },
+                },
+            );
         }
         let table_info = metadata::TableInfo {
             table_name: table_name.clone(),

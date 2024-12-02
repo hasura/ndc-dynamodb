@@ -251,7 +251,10 @@ impl From {
     pub fn to_sql(&self, sql: &mut SQL) {
         sql.append_syntax("FROM ");
         match &self {
-            From::Table { reference, alias: _ } => {
+            From::Table {
+                reference,
+                alias: _,
+            } => {
                 reference.to_sql(sql);
                 // sql.append_syntax(" AS ");
                 // alias.to_sql(sql);
@@ -382,7 +385,10 @@ impl Expression {
             Expression::ColumnReference(column_reference) => column_reference.to_sql(sql),
             Expression::TableReference(table_reference) => table_reference.to_sql(sql),
             Expression::Value(value) => value.to_sql(sql),
-            Expression::Cast { expression, r#type: _ } => {
+            Expression::Cast {
+                expression,
+                r#type: _,
+            } => {
                 // There is no cast expression in DynamoDB
                 expression.to_sql(sql);
             }
@@ -719,7 +725,6 @@ impl TableReference {
                         sql.append_syntax(".");
                         sql.append_identifier(&gsi.0);
                     }
-                    
                 }
             }
             TableReference::AliasedTable(alias) => alias.to_sql(sql),
@@ -753,7 +758,7 @@ impl TableAlias {
 impl ColumnReference {
     pub fn to_sql(&self, sql: &mut SQL) {
         match self {
-            ColumnReference::TableColumn {table: _, name } => {
+            ColumnReference::TableColumn { table: _, name } => {
                 // table.to_sql(sql);
                 // sql.append_syntax(".");
                 sql.append_identifier(&name.0.to_string());

@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
-use ndc_dynamodb_configuration::environment::ProcessEnvironment;
 use ndc_dynamodb::connector::DynamoDBSetup;
+use ndc_dynamodb_configuration::environment::ProcessEnvironment;
 use ndc_sdk::default_main::default_main_with;
 
 #[tokio::main]

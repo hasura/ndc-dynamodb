@@ -82,7 +82,6 @@ pub async fn get_schema(
             collection_type: table_name.as_str().into(),
             uniqueness_constraints: BTreeMap::new(),
             foreign_keys: BTreeMap::new(),
-
         })
         .collect();
 

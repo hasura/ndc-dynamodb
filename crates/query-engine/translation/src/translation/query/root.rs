@@ -34,21 +34,12 @@ pub fn translate_query(
     //     translate_aggregate_select(env, state, make_from, join_predicate, query_request)?;
 
     // Create a structure describing the selection set - only rows, only aggregates, or both.
-    let select_set = match (&returns_field, row_select) {
-        // // Only rows or Neither (This is valid. Returns empty objects).
-        (_, rows) => (query_request.limit, returns_field, sql::helpers::SelectSet::Rows(rows)), // no fields selected.
-                                                                                   // (
-                                                                                   //     (ReturnsFields::NoFieldsWereRequested, rows),
-                                                                                   //     None
-                                                                                   // ) => {
-                                                                                   //     (ReturnsFields::NoFieldsWereRequested, sql::helpers::SelectSet::Rows(rows))
-                                                                                   // }
-                                                                                   // (ReturnsFields::NoFieldsWereRequested, None) => {
-                                                                                   //     return Err(Error::QueryError(
-                                                                                   //         "No fields or aggregates were requested in the query.".to_string(),
-                                                                                   //     ));
-                                                                                   // }
-    };
+    let (_, rows) = (&returns_field, row_select);
+    let select_set = (
+        query_request.limit,
+        returns_field,
+        sql::helpers::SelectSet::Rows(rows),
+    );
 
     Ok(select_set)
 }
@@ -76,13 +67,9 @@ fn translate_rows_select(
     };
 
     let mut fields_select = match returns_fields {
-        ReturnsFields::FieldsWereRequested => fields::translate_fields(
-            env,
-            state,
-            fields,
-            &current_table,
-            from_clause,
-        )?,
+        ReturnsFields::FieldsWereRequested => {
+            fields::translate_fields(env, state, fields, &current_table, from_clause)?
+        }
         ReturnsFields::NoFieldsWereRequested => {
             let select_1 = sql::ast::SelectList::Select1;
 
@@ -229,9 +216,11 @@ fn make_reference_and_from_clause(
     make_from: &MakeFrom,
 ) -> Result<(TableNameAndReference, sql::ast::From), Error> {
     match make_from {
-        MakeFrom::Collection { name, gsi, arguments: _ } => {
-            make_from_clause_and_reference(name, gsi.clone(), env, state, None)
-        }
+        MakeFrom::Collection {
+            name,
+            gsi,
+            arguments: _,
+        } => make_from_clause_and_reference(name, gsi.clone(), env, state, None),
         MakeFrom::TableReference { name, reference } => {
             let table_alias = state.make_table_alias(name.to_string());
             let from_clause = sql::ast::From::Table {

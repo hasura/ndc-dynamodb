@@ -99,12 +99,8 @@ impl<'request> Env<'request> {
     }
 
     /// Create a new Env by supplying the metadata and relationships.
-    pub fn new(
-        metadata: &'request metadata::Metadata,
-    ) -> Self {
-        Env {
-            metadata,
-        }
+    pub fn new(metadata: &'request metadata::Metadata) -> Self {
+        Env { metadata }
     }
 
     /// Lookup a metadata object that may contain fields. This may be any of Tables, Native
@@ -172,7 +168,7 @@ impl<'request> Env<'request> {
     /// Lookup type representation of a type.
     pub fn lookup_type_representation(
         &self,
-        scalar_type: &models::ScalarTypeName
+        scalar_type: &models::ScalarTypeName,
     ) -> Option<&metadata::TypeRepresentation> {
         self.metadata
             .scalar_types

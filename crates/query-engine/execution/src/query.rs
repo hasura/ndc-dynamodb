@@ -4,9 +4,9 @@ use std::{collections::HashMap, vec};
 
 use crate::error::Error;
 use crate::metrics;
+use aws_sdk_dynamodb::Client;
 use bytes::{BufMut, Bytes, BytesMut};
 use serde_json::{self, to_string, Value};
-use aws_sdk_dynamodb::Client;
 
 use query_engine_sql::sql;
 
@@ -29,12 +29,7 @@ pub async fn execute(
             // Query
             let rs = client
                 .execute_statement()
-                .statement(
-                    format!(
-                        r#"{}"#,
-                        query_request
-                    )
-                )
+                .statement(query_request.to_string())
                 .set_parameters(None)
                 .set_limit(query_limit)
                 .send()
@@ -43,51 +38,47 @@ pub async fn execute(
 
             let mut res_map: Vec<HashMap<String, String>> = vec![];
 
-
-            for item in rs.items.unwrap().iter() {
+            for item in &rs.items.unwrap() {
                 dbg!(item);
                 let mut hashmap = HashMap::new();
-                for (key, attribute_value) in item.clone(){
+                for (key, attribute_value) in item.clone() {
                     if attribute_value.is_s() {
                         let s = attribute_value.as_s().unwrap().to_string();
-                        println!("String: {}", s);
+                        println!("String: {s}");
                         hashmap.insert(key, s);
                     } else if attribute_value.is_n() {
                         let n = attribute_value.as_n().unwrap().to_string();
-                        println!("Number: {}", n);
+                        println!("Number: {n}");
                         hashmap.insert(key, n);
-                    } 
-                    else if attribute_value.is_bool() {
+                    } else if attribute_value.is_bool() {
                         let bool = attribute_value.as_bool().unwrap();
                         let bool_str = bool.to_string();
                         hashmap.insert(key, bool_str);
-                    } 
-                    else {
+                    } else {
                         println!("Unknown");
                     }
-                };
+                }
                 dbg!(item);
                 res_map.push(hashmap);
             }
 
             dbg!(&res_map);
 
+            let mut rows: HashMap<String, Vec<HashMap<String, String>>> = HashMap::new();
+            rows.insert("rows".into(), res_map);
 
-            let mut foo: HashMap<String, Vec<HashMap<String, String>>> = HashMap::new();
-            foo.insert("rows".into(), res_map);
+            dbg!(&rows);
 
-            dbg!(&foo);
+            let rows_stringified = serde_json::to_string(&rows).unwrap();
+            dbg!(&rows_stringified);
 
-            let bar = serde_json::to_string(&foo).unwrap();
-            dbg!(&bar);
-
-            let row_value: Value = serde_json::from_str(&bar).unwrap();
+            let row_value: Value = serde_json::from_str(&rows_stringified).unwrap();
 
             let row_value_array = Value::Array(vec![row_value]);
             let final_row = to_string(&row_value_array).unwrap();
 
             let b: Bytes = Bytes::from(final_row);
-                buffer.put(b);
+            buffer.put(b);
         }
         Some(_variable_sets) => {
             todo!("foreach/variables not implemented in query engine / execution")

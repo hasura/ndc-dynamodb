@@ -49,7 +49,7 @@ pub(crate) fn translate_fields(
         })
         .collect::<Result<Vec<_>, Error>>()?;
 
-        let mut select = sql::helpers::simple_select(columns);
+    let mut select = sql::helpers::simple_select(columns);
 
     select.from = Some(from);
 
