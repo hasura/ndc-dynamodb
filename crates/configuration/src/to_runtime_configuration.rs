@@ -2,7 +2,7 @@
 //! That can be used by the connector at runtime.
 
 use super::version1::ParsedConfiguration;
-use crate::environment::Environment;
+use crate::environment::{Environment, Variable};
 use crate::error::MakeRuntimeConfigurationError;
 use crate::values::{AccessKeyId, Region, Secret, SecretAccessKey};
 use query_engine_metadata::{self, metadata};
@@ -47,14 +47,17 @@ pub fn make_runtime_configuration(
             })
         }
     }?;
+
+    let url = environment
+        .read(&Variable::from("HASURA_DYNAMODB_URL"))
+        .ok();
+
     Ok(crate::Configuration {
         metadata: convert_metadata(parsed_config.metadata),
         access_key_id,
         secret_access_key,
-        // provider_name,
+        url,
         region,
-        // pool_settings: parsed_config.pool_settings,
-        // mutations_version: convert_mutations_version(parsed_config.mutations_version),
     })
 }
 
@@ -64,8 +67,6 @@ pub fn convert_metadata(metadata: metadata::Metadata) -> query_engine_metadata::
     query_engine_metadata::metadata::Metadata {
         tables: convert_tables(metadata.tables),
         scalar_types: convert_scalar_types(metadata.scalar_types),
-        // composite_types: convert_composite_types(metadata.composite_types),
-        // native_operations: convert_native_operations(metadata.native_operations),
     }
 }
 

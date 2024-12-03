@@ -62,3 +62,18 @@ impl From<&str> for Region {
         Self::from(value.to_string())
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
+pub struct Url(pub Secret);
+
+impl From<String> for Url {
+    fn from(value: String) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<&str> for Url {
+    fn from(value: &str) -> Self {
+        Self::from(value.to_string())
+    }
+}

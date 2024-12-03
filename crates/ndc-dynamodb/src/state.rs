@@ -31,6 +31,7 @@ pub async fn create_state(
     let access_key_id = configuration.access_key_id.clone();
     let secret_access_key = configuration.secret_access_key.clone();
     let region = configuration.region.clone();
+    let url = configuration.url.clone();
 
     let credentials = aws_sdk_dynamodb::config::Credentials::new(
         access_key_id,
@@ -40,11 +41,22 @@ pub async fn create_state(
         "my-provider", // Provider name
     );
 
-    let config = Config::builder()
+    // let config = Config::builder()
+    // .region(aws_config::Region::new(region.to_string()))
+    // .credentials_provider(credentials)
+    // .behavior_version_latest()
+    // .endpoint_url(url.to_string())
+    // .build();
+
+    let config_builder = Config::builder()
         .region(aws_config::Region::new(region))
         .credentials_provider(credentials)
-        .behavior_version_latest()
-        .build();
+        .behavior_version_latest();
+
+    let config = match url {
+        Some(aws_url) => config_builder.endpoint_url(aws_url).build(),
+        None => config_builder.build(),
+    };
 
     let client = aws_sdk_dynamodb::Client::from_conf(config);
 
