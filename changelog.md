@@ -8,7 +8,7 @@
 
 ### Fixed
 
-## [v0.1.0] - 2024-11-29
+## [v0.1.1] - 2024-12-03
 
 ### Added
 
@@ -21,4 +21,4 @@
 <!-- end -->
 
 [Unreleased]: https://github.com/hasura/ndc-dynamodb/compare/v0.2.0...HEAD
-[v0.1.1]: https://github.com/hasura/ndc-dynamodb/releases/tag/v0.1.0
+[v0.1.1]: https://github.com/hasura/ndc-dynamodb/releases/tag/v0.1.1

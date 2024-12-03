@@ -43,6 +43,7 @@ pub async fn create_state(
     let config = Config::builder()
         .region(aws_config::Region::new(region))
         .credentials_provider(credentials)
+        .behavior_version_latest()
         .build();
 
     let client = aws_sdk_dynamodb::Client::from_conf(config);

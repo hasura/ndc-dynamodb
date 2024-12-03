@@ -11,7 +11,7 @@
 let
   buildArgs = {
     pname = "ndc-dynamodb";
-    version = "0.1.0";
+    version = "0.1.1";
 
     src =
       let
