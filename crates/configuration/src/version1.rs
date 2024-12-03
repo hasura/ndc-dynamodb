@@ -1,6 +1,6 @@
 //! Internal Configuration and state for our connector.
 
-use crate::environment::Environment;
+use crate::environment::{Environment, Variable};
 use crate::error::WriteParsedConfigurationError;
 use crate::values::Secret;
 use crate::{connection_settings, AccessKeyId, SecretAccessKey};
@@ -79,21 +79,16 @@ pub async fn introspect(
             Cow::Owned(environment.read(variable)?)
         }
     };
-    // let provider_name = match &args.connection_settings.provider_name {
-    //     ProviderName(Secret::Plain(value)) => Cow::Borrowed(value),
-    //     ProviderName(Secret::FromEnvironment { variable }) => Cow::Owned(environment.read(variable)?),
-    // };
+    let url = environment
+        .read(&Variable::from("HASURA_DYNAMODB_URL"))
+        .ok();
     let region = match &args.connection_settings.region {
         crate::Region(Secret::Plain(value)) => Cow::Borrowed(value),
         crate::Region(Secret::FromEnvironment { variable }) => {
             Cow::Owned(environment.read(variable)?)
         }
     };
-    // let access_key_id = args.connection_settings.access_key_id.clone();
-    // let secret_access_key = args.connection_settings.secret_access_key.clone();
-    // let session_token = args.connection_settings.session_token.clone();
-    // let region = args.connection_settings.region.clone();
-    // let config = aws_config::load_from_env().await;
+
     let credentials = aws_sdk_dynamodb::config::Credentials::new(
         access_key_id.to_string(),
         secret_access_key.to_string(),
@@ -101,23 +96,37 @@ pub async fn introspect(
         None,          // Expiration (None for non-expiring)
         "my-provider", // Provider name
     );
-
-    // Configure AWS SDK with explicit credentials
-    let config = Config::builder()
+    let config_builder = Config::builder()
         .region(aws_config::Region::new(region.to_string()))
         .credentials_provider(credentials)
-        .behavior_version_latest()
-        .build();
+        .behavior_version_latest();
 
-    // To use localhost url
-    // let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
-    //     .test_credentials()
-    //     .region(aws_config::Region::new("us-west-2"))
-    //     // DynamoDB run locally uses port 8000 by default.
-    //     .endpoint_url("http://localhost:8085")
-    //     .load()
-    //     .await;
-    // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
+    let config = match url {
+        Some(aws_url) => config_builder.endpoint_url(aws_url).build(),
+        None => config_builder.build(),
+    };
+
+    // let config = if url.is_empty() {
+    //     Config::builder()
+    //     .region(aws_config::Region::new(region.to_string()))
+    //     .credentials_provider(credentials.clone())
+    //     .behavior_version_latest()
+    //     .build()
+    // } else {
+    //     Config::builder()
+    //     .region(aws_config::Region::new(region.to_string()))
+    //     .credentials_provider(credentials.clone())
+    //     .behavior_version_latest()
+    //     .endpoint_url(url.to_string())
+    //     .build()
+    // };
+
+    // let config = Config::builder()
+    // .region(aws_config::Region::new(region.to_string()))
+    // .credentials_provider(credentials)
+    // .behavior_version_latest()
+    // .endpoint_url(url.to_string())
+    // .build();
 
     let client = aws_sdk_dynamodb::Client::from_conf(config);
     let tables_result = client.list_tables().send().await;
@@ -293,7 +302,7 @@ pub async fn introspect(
         connection_settings: connection_settings::DatabaseConnectionSettings {
             access_key_id: args.connection_settings.access_key_id.clone(),
             secret_access_key: args.connection_settings.secret_access_key.clone(),
-            // provider_name: args.connection_settings.provider_name.clone(),
+            url: args.connection_settings.url.clone(),
             region: args.connection_settings.region.clone(),
         },
         metadata: metadata::Metadata {

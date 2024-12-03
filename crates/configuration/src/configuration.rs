@@ -21,7 +21,7 @@ pub struct Configuration {
     pub metadata: metadata::Metadata,
     pub access_key_id: String,
     pub secret_access_key: String,
-    // pub provider_name: String,
+    pub url: Option<String>,
     pub region: String,
     // pub mutations_version: Option<metadata::mutations::MutationsVersion>,
 }

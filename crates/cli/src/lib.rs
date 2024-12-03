@@ -33,13 +33,6 @@ pub enum Command {
     },
     /// Update the configuration by introspecting the database, using the configuration options.
     Update,
-    // /// Upgrade the configuration to the latest version. This does not involve the database.
-    // Upgrade {
-    //     #[arg(long)]
-    //     dir_from: PathBuf,
-    //     #[arg(long)]
-    //     dir_to: PathBuf,
-    // },
 }
 
 /// The set of errors that can go wrong _in addition to_ generic I/O or parsing errors.
@@ -54,7 +47,6 @@ pub async fn run(command: Command, context: Context<impl Environment>) -> anyhow
     match command {
         Command::Initialize { with_metadata } => initialize(with_metadata, context).await?,
         Command::Update => update(context).await?,
-        // Command::Upgrade { dir_from, dir_to } => upgrade(dir_from, dir_to).await?,
     };
     Ok(())
 }
@@ -95,31 +87,31 @@ async fn initialize(with_metadata: bool, context: Context<impl Environment>) -> 
                 },
             ),
             supported_environment_variables: vec![
-				metadata::EnvironmentVariableDefinition {
-					name: "HASURA_DYNAMODB_AWS_ACCESS_KEY_ID".to_string(),
-					description: "The AWS DynamoDB access key ID".to_string(),
-					default_value: Some("dynamodbql://read_only_user:readonlyuser@35.236.11.122:5432/v3-docs-sample-app".to_string()),
+                metadata::EnvironmentVariableDefinition {
+                    name: "HASURA_DYNAMODB_AWS_ACCESS_KEY_ID".to_string(),
+                    description: "The AWS DynamoDB access key ID".to_string(),
+                    default_value: None,
                     required: true,
-				},
-				metadata::EnvironmentVariableDefinition {
-					name: "HASURA_DYNAMODB_AWS_SECRET_ACCESS_KEY".to_string(),
-					description: "The AWS DynamoDB secret access key".to_string(),
-					default_value: Some(String::new()),
-                    required: true
-				},
-				// metadata::EnvironmentVariableDefinition {
-				// 	name: "HASURA_DYNAMODB_AWS_PROVIDER_NAME".to_string(),
-				// 	description: "The AWS DynamoDB provider name".to_string(),
-				// 	default_value: Some(String::new()),
-                //     required: true,
-				// },
-				metadata::EnvironmentVariableDefinition {
-					name: "HASURA_DYNAMODB_AWS_REGION".to_string(),
-					description: "The AWS DynamoDB region".to_string(),
-					default_value: Some(String::new()),
+                },
+                metadata::EnvironmentVariableDefinition {
+                    name: "HASURA_DYNAMODB_AWS_SECRET_ACCESS_KEY".to_string(),
+                    description: "The AWS DynamoDB secret access key".to_string(),
+                    default_value: None,
                     required: true,
-				},
-			],
+                },
+                metadata::EnvironmentVariableDefinition {
+                    name: "HASURA_DYNAMODB_URL".to_string(),
+                    description: "The AWS DynamoDB URL".to_string(),
+                    default_value: Some(String::new()),
+                    required: false,
+                },
+                metadata::EnvironmentVariableDefinition {
+                    name: "HASURA_DYNAMODB_AWS_REGION".to_string(),
+                    description: "The AWS DynamoDB region".to_string(),
+                    default_value: None,
+                    required: true,
+                },
+            ],
             commands: metadata::Commands {
                 update: Some("hasura-ndc-dynamodb update".to_string()),
                 watch: None,
