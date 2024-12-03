@@ -1775,7 +1775,7 @@ dependencies = [
 
 [[package]]
 name = "ndc-dynamodb"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1800,7 +1800,7 @@ dependencies = [
 
 [[package]]
 name = "ndc-dynamodb-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "build-data",
@@ -1817,7 +1817,7 @@ dependencies = [
 
 [[package]]
 name = "ndc-dynamodb-configuration"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "aws-config",
@@ -2399,7 +2399,7 @@ checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
 
 [[package]]
 name = "query-engine-execution"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
@@ -2417,7 +2417,7 @@ dependencies = [
 
 [[package]]
 name = "query-engine-metadata"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ndc-models",
  "schemars",
@@ -2427,7 +2427,7 @@ dependencies = [
 
 [[package]]
 name = "query-engine-sql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ndc-models",
  "schemars",
@@ -2438,7 +2438,7 @@ dependencies = [
 
 [[package]]
 name = "query-engine-translation"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "indexmap 2.6.0",
