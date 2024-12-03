@@ -1,8 +1,14 @@
 {
   "version": 1,
   "connectionSettings": {
-    "connectionPlaceholder": {
-      "variable": "HASURA_DYNAMODB_CONNECTION_URI_PLACEHOLDER"
+    "accessKeyId": {
+      "variable": "HASURA_DYNAMODB_AWS_ACCESS_KEY_ID"
+    },
+    "secretAccessKey": {
+      "variable": "HASURA_DYNAMODB_AWS_SECRET_ACCESS_KEY"
+    },
+    "region": {
+      "variable": "HASURA_DYNAMODB_AWS_REGION"
     }
   },
   "metadata": {
@@ -34,6 +40,14 @@
             "nullable": "nullable",
             "description": null
           },
+          "attachments": {
+            "name": "attachments",
+            "type": {
+              "scalarType": "Any"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
           "comm_date": {
             "name": "comm_date",
             "type": {
@@ -42,8 +56,56 @@
             "nullable": "nullable",
             "description": null
           },
+          "comm_id": {
+            "name": "comm_id",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "comm_text": {
+            "name": "comm_text",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "complaint_description": {
+            "name": "complaint_description",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
           "complaint_id": {
             "name": "complaint_id",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "complaint_state": {
+            "name": "complaint_state",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "creation_time": {
+            "name": "creation_time",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "current_state": {
+            "name": "current_state",
             "type": {
               "scalarType": "String"
             },
@@ -68,6 +130,14 @@
           },
           "escalation_time": {
             "name": "escalation_time",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "severity": {
+            "name": "severity",
             "type": {
               "scalarType": "String"
             },
@@ -108,8 +178,48 @@
       "SkiLifts": {
         "tableName": "SkiLifts",
         "columns": {
+          "AvalancheDanger": {
+            "name": "AvalancheDanger",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "AverageSnowCoverageInches": {
+            "name": "AverageSnowCoverageInches",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "ExperiencedRidersOnly": {
+            "name": "ExperiencedRidersOnly",
+            "type": {
+              "scalarType": "Boolean"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
           "Lift": {
             "name": "Lift",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "LiftStatus": {
+            "name": "LiftStatus",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "LiftTime": {
+            "name": "LiftTime",
             "type": {
               "scalarType": "String"
             },
@@ -124,8 +234,24 @@
             "nullable": "nullable",
             "description": null
           },
+          "OpenLifts": {
+            "name": "OpenLifts",
+            "type": {
+              "scalarType": "Any"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
           "TotalUniqueLiftRiders": {
             "name": "TotalUniqueLiftRiders",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "VerticalFeet": {
+            "name": "VerticalFeet",
             "type": {
               "scalarType": "Number"
             },
@@ -180,6 +306,14 @@
             "name": "id",
             "type": {
               "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "lastname": {
+            "name": "lastname",
+            "type": {
+              "scalarType": "String"
             },
             "nullable": "nullable",
             "description": null
@@ -261,10 +395,58 @@
       }
     },
     "scalarTypes": {
+      "Boolean": {
+        "typeName": "Boolean",
+        "description": null,
+        "comparisonOperators": {
+          "_eq": {
+            "operatorName": "=",
+            "operatorKind": "equal",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_gt": {
+            "operatorName": ">",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_gte": {
+            "operatorName": ">=",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_in": {
+            "operatorName": "IN",
+            "operatorKind": "in",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_lt": {
+            "operatorName": "<",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_lte": {
+            "operatorName": "<=",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_neq": {
+            "operatorName": "!=",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          }
+        },
+        "typeRepresentation": "boolean"
+      },
       "Number": {
         "typeName": "Number",
         "description": null,
-        "aggregateFunctions": {},
         "comparisonOperators": {
           "_eq": {
             "operatorName": "=",
@@ -309,12 +491,11 @@
             "isInfix": true
           }
         },
-        "typeRepresentation": null
+        "typeRepresentation": "int64"
       },
       "String": {
         "typeName": "String",
         "description": null,
-        "aggregateFunctions": {},
         "comparisonOperators": {
           "_eq": {
             "operatorName": "=",
@@ -359,7 +540,7 @@
             "isInfix": true
           }
         },
-        "typeRepresentation": null
+        "typeRepresentation": "string"
       }
     }
   }

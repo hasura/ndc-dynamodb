@@ -5,6 +5,7 @@ use std::{collections::HashMap, vec};
 use crate::error::Error;
 use crate::metrics;
 use aws_sdk_dynamodb::Client;
+use base64;
 use bytes::{BufMut, Bytes, BytesMut};
 use serde_json::{self, to_string, Value};
 
@@ -55,6 +56,52 @@ pub async fn execute(
                         let bool = attribute_value.as_bool().unwrap();
                         let bool_str = bool.to_string();
                         hashmap.insert(key, bool_str);
+                    } else if attribute_value.is_null() {
+                        hashmap.insert(key, "null".to_string());
+                    } else if attribute_value.is_b() {
+                        let b = attribute_value.as_b().unwrap();
+                        let b_str = base64::Engine::encode(
+                            &base64::engine::general_purpose::STANDARD,
+                            b.as_ref(),
+                        );
+                        hashmap.insert(key, b_str);
+                    } else if attribute_value.is_ss() {
+                        let ss = attribute_value.as_ss().unwrap();
+                        let ss_str = ss.join(", ");
+                        hashmap.insert(key, ss_str);
+                    } else if attribute_value.is_ns() {
+                        let ns = attribute_value.as_ns().unwrap();
+                        let ns_str = ns.join(", ");
+                        hashmap.insert(key, ns_str);
+                    } else if attribute_value.is_bs() {
+                        let bs = attribute_value.as_bs().unwrap();
+                        let bs_str = bs
+                            .iter()
+                            .map(|b| {
+                                base64::Engine::encode(
+                                    &base64::engine::general_purpose::STANDARD,
+                                    b.as_ref(),
+                                )
+                            })
+                            .collect::<Vec<String>>()
+                            .join(", ");
+                        hashmap.insert(key, bs_str);
+                    } else if attribute_value.is_m() {
+                        let m = attribute_value.as_m().unwrap();
+                        let mut m_str = "{".to_string();
+                        for (k, v) in m {
+                            m_str.push_str(&format!("{k}: {v:?}, "));
+                        }
+                        m_str.push('}');
+                        hashmap.insert(key, m_str);
+                    } else if attribute_value.is_l() {
+                        let l = attribute_value.as_l().unwrap();
+                        let mut l_str = "[".to_string();
+                        for v in l {
+                            l_str.push_str(&format!("{v:?}, "));
+                        }
+                        l_str.push(']');
+                        hashmap.insert(key, l_str);
                     } else {
                         println!("Unknown");
                     }
