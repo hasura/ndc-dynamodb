@@ -106,6 +106,7 @@ pub async fn introspect(
     let config = Config::builder()
         .region(aws_config::Region::new(region.to_string()))
         .credentials_provider(credentials)
+        .behavior_version_latest()
         .build();
 
     // To use localhost url
@@ -122,7 +123,7 @@ pub async fn introspect(
     let tables_result = client.list_tables().send().await;
     let tables = tables_result
         .map_err(|_op| {
-            ParseConfigurationError::IoErrorButStringified("Failed to list tables:".to_string())
+            ParseConfigurationError::IoErrorButStringified("Failed to list tables".to_string())
         })
         .unwrap(); //TODO: handle error
     let table_names = tables.table_names.unwrap_or_default();
