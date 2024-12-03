@@ -1,0 +1,547 @@
+{
+  "version": 1,
+  "connectionSettings": {
+    "accessKeyId": {
+      "variable": "HASURA_DYNAMODB_AWS_ACCESS_KEY_ID"
+    },
+    "secretAccessKey": {
+      "variable": "HASURA_DYNAMODB_AWS_SECRET_ACCESS_KEY"
+    },
+    "region": {
+      "variable": "HASURA_DYNAMODB_AWS_REGION"
+    }
+  },
+  "metadata": {
+    "tables": {
+      "Complaint_management_system": {
+        "tableName": "Complaint_management_system",
+        "columns": {
+          "PK": {
+            "name": "PK",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "SK": {
+            "name": "SK",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "agentID": {
+            "name": "agentID",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "attachments": {
+            "name": "attachments",
+            "type": {
+              "scalarType": "Any"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "comm_date": {
+            "name": "comm_date",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "comm_id": {
+            "name": "comm_id",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "comm_text": {
+            "name": "comm_text",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "complaint_description": {
+            "name": "complaint_description",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "complaint_id": {
+            "name": "complaint_id",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "complaint_state": {
+            "name": "complaint_state",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "creation_time": {
+            "name": "creation_time",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "current_state": {
+            "name": "current_state",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "customer_id": {
+            "name": "customer_id",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "escalated_to": {
+            "name": "escalated_to",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "escalation_time": {
+            "name": "escalation_time",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "severity": {
+            "name": "severity",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          }
+        },
+        "partitionKey": "PK",
+        "sortKey": "SK",
+        "gsi": {
+          "Agents_Comments_GSI": {
+            "partition_key": "agentID",
+            "sort_key": "comm_date",
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "Customer_Complaint_GSI": {
+            "partition_key": "customer_id",
+            "sort_key": "complaint_id",
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "Escalations_GSI": {
+            "partition_key": "escalated_to",
+            "sort_key": "escalation_time",
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          }
+        },
+        "description": null
+      },
+      "SkiLifts": {
+        "tableName": "SkiLifts",
+        "columns": {
+          "AvalancheDanger": {
+            "name": "AvalancheDanger",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "AverageSnowCoverageInches": {
+            "name": "AverageSnowCoverageInches",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "ExperiencedRidersOnly": {
+            "name": "ExperiencedRidersOnly",
+            "type": {
+              "scalarType": "Boolean"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "Lift": {
+            "name": "Lift",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "LiftStatus": {
+            "name": "LiftStatus",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "LiftTime": {
+            "name": "LiftTime",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "Metadata": {
+            "name": "Metadata",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "OpenLifts": {
+            "name": "OpenLifts",
+            "type": {
+              "scalarType": "Any"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "TotalUniqueLiftRiders": {
+            "name": "TotalUniqueLiftRiders",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "VerticalFeet": {
+            "name": "VerticalFeet",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          }
+        },
+        "partitionKey": "Lift",
+        "sortKey": "Metadata",
+        "gsi": {
+          "SkiLiftsByRiders": {
+            "partition_key": "Lift",
+            "sort_key": "TotalUniqueLiftRiders",
+            "projection_type": {
+              "projection_type": "INCLUDE",
+              "non_key_attributes": [
+                "Metadata"
+              ]
+            }
+          }
+        },
+        "description": null
+      },
+      "test": {
+        "tableName": "test",
+        "columns": {
+          "1": {
+            "name": "1",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "country": {
+            "name": "country",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "department": {
+            "name": "department",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "id": {
+            "name": "id",
+            "type": {
+              "scalarType": "Number"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "lastname": {
+            "name": "lastname",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          },
+          "name": {
+            "name": "name",
+            "type": {
+              "scalarType": "String"
+            },
+            "nullable": "nullable",
+            "description": null
+          }
+        },
+        "partitionKey": "id",
+        "sortKey": "name",
+        "gsi": {
+          "countryindex": {
+            "partition_key": "country",
+            "sort_key": null,
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "countryindexwithsortkey": {
+            "partition_key": "country",
+            "sort_key": "name",
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "department": {
+            "partition_key": "1",
+            "sort_key": null,
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "departmentindex": {
+            "partition_key": "department",
+            "sort_key": null,
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "idindex": {
+            "partition_key": "id",
+            "sort_key": null,
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "idindexwithsortkey": {
+            "partition_key": "id",
+            "sort_key": "country",
+            "projection_type": {
+              "projection_type": "ALL",
+              "non_key_attributes": []
+            }
+          },
+          "test_gsi": {
+            "partition_key": "id",
+            "sort_key": "country",
+            "projection_type": {
+              "projection_type": "INCLUDE",
+              "non_key_attributes": [
+                "name",
+                "id",
+                "department"
+              ]
+            }
+          }
+        },
+        "description": null
+      }
+    },
+    "scalarTypes": {
+      "Boolean": {
+        "typeName": "Boolean",
+        "description": null,
+        "comparisonOperators": {
+          "_eq": {
+            "operatorName": "=",
+            "operatorKind": "equal",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_gt": {
+            "operatorName": ">",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_gte": {
+            "operatorName": ">=",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_in": {
+            "operatorName": "IN",
+            "operatorKind": "in",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_lt": {
+            "operatorName": "<",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_lte": {
+            "operatorName": "<=",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          },
+          "_neq": {
+            "operatorName": "!=",
+            "operatorKind": "custom",
+            "argumentType": "Boolean",
+            "isInfix": true
+          }
+        },
+        "typeRepresentation": "boolean"
+      },
+      "Number": {
+        "typeName": "Number",
+        "description": null,
+        "comparisonOperators": {
+          "_eq": {
+            "operatorName": "=",
+            "operatorKind": "equal",
+            "argumentType": "Number",
+            "isInfix": true
+          },
+          "_gt": {
+            "operatorName": ">",
+            "operatorKind": "custom",
+            "argumentType": "Number",
+            "isInfix": true
+          },
+          "_gte": {
+            "operatorName": ">=",
+            "operatorKind": "custom",
+            "argumentType": "Number",
+            "isInfix": true
+          },
+          "_in": {
+            "operatorName": "IN",
+            "operatorKind": "in",
+            "argumentType": "Number",
+            "isInfix": true
+          },
+          "_lt": {
+            "operatorName": "<",
+            "operatorKind": "custom",
+            "argumentType": "Number",
+            "isInfix": true
+          },
+          "_lte": {
+            "operatorName": "<=",
+            "operatorKind": "custom",
+            "argumentType": "Number",
+            "isInfix": true
+          },
+          "_neq": {
+            "operatorName": "!=",
+            "operatorKind": "custom",
+            "argumentType": "Number",
+            "isInfix": true
+          }
+        },
+        "typeRepresentation": "int64"
+      },
+      "String": {
+        "typeName": "String",
+        "description": null,
+        "comparisonOperators": {
+          "_eq": {
+            "operatorName": "=",
+            "operatorKind": "equal",
+            "argumentType": "String",
+            "isInfix": true
+          },
+          "_gt": {
+            "operatorName": ">",
+            "operatorKind": "custom",
+            "argumentType": "String",
+            "isInfix": true
+          },
+          "_gte": {
+            "operatorName": ">=",
+            "operatorKind": "custom",
+            "argumentType": "String",
+            "isInfix": true
+          },
+          "_in": {
+            "operatorName": "IN",
+            "operatorKind": "in",
+            "argumentType": "String",
+            "isInfix": true
+          },
+          "_lt": {
+            "operatorName": "<",
+            "operatorKind": "custom",
+            "argumentType": "String",
+            "isInfix": true
+          },
+          "_lte": {
+            "operatorName": "<=",
+            "operatorKind": "custom",
+            "argumentType": "String",
+            "isInfix": true
+          },
+          "_neq": {
+            "operatorName": "!=",
+            "operatorKind": "custom",
+            "argumentType": "String",
+            "isInfix": true
+          }
+        },
+        "typeRepresentation": "string"
+      }
+    }
+  }
+}

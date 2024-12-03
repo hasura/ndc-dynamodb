@@ -1,0 +1,51 @@
+name: DynamoDB NDC nix check
+
+on:
+  push:
+
+jobs:
+  nix-flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Install Nix ❄
+        uses: cachix/install-nix-action@V28
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up the Nix Cache 🔌
+        uses: cachix/cachix-action@v15
+        with:
+          name: hasura-v3-dev
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false # attempt to stop hanging on cleanup
+
+      - name: nix flake check
+        run: |
+          nix flake check --print-build-logs
+
+  nix-develop:
+    name: nix develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Install Nix ❄
+        uses: cachix/install-nix-action@V28
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up the Nix Cache 🔌
+        uses: cachix/cachix-action@v15
+        with:
+          name: hasura-v3-dev
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false # attempt to stop hanging on cleanup
+
+      - name: nix develop --command true
+        run: |
+          nix develop --print-build-logs --command true

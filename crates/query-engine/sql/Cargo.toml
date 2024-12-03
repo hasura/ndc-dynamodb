@@ -1,0 +1,16 @@
+[package]
+name = "query-engine-sql"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ndc-models = { workspace = true }
+
+smol_str = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+schemars = { workspace = true, features = ["smol_str"] }
