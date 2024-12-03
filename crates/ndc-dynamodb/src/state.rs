@@ -45,14 +45,6 @@ pub async fn create_state(
         .credentials_provider(credentials)
         .build();
 
-    // let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
-    //     .test_credentials()
-    //     .region(Region::new("us-west-2"))
-    //     // DynamoDB run locally uses port 8000 by default.
-    //     .endpoint_url("http://localhost:8085")
-    //     .load()
-    //     .await;
-    // let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config).build();
     let client = aws_sdk_dynamodb::Client::from_conf(config);
 
     Ok(State { metrics, client })

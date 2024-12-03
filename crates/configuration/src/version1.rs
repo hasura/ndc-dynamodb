@@ -120,13 +120,11 @@ pub async fn introspect(
 
     let client = aws_sdk_dynamodb::Client::from_conf(config);
     let tables_result = client.list_tables().send().await;
-    // dbg!(&tables_result);
     let tables = tables_result
         .map_err(|_op| {
             ParseConfigurationError::IoErrorButStringified("Failed to list tables:".to_string())
         })
         .unwrap(); //TODO: handle error
-                   // dbg!(&tables);
     let table_names = tables.table_names.unwrap_or_default();
     let mut scalars_list: BTreeSet<ScalarTypeName> = BTreeSet::new();
     let mut tables_info: BTreeMap<CollectionName, metadata::TableInfo> = BTreeMap::new();
@@ -134,7 +132,6 @@ pub async fn introspect(
         let table_result = client.describe_table().table_name(table_name).send().await;
         let table = table_result.unwrap(); //TODO: handle error
         let table = table.table.unwrap();
-        // dbg!(&table);
         let table_name = table.table_name.unwrap();
         let attribute_definitions = table.attribute_definitions.unwrap();
         let mut columns_info: BTreeMap<FieldName, ColumnInfo> = BTreeMap::new();
@@ -146,13 +143,6 @@ pub async fn introspect(
                 "S" => ScalarTypeName::new("String".into()),
                 "N" => ScalarTypeName::new("Number".into()),
                 "B" => ScalarTypeName::new("Binary".into()),
-                // "SS" => ScalarTypeName::new("StringSet".into()),
-                // "NS" => ScalarTypeName::new("NumberSet".into()),
-                // "BS" => ScalarTypeName::new("BinarySet".into()),
-                // "BOOL" => ScalarTypeName::new("Boolean".into()),
-                // "NULL" => ScalarTypeName::new("Null".into()),
-                // "M" => ScalarTypeName::new("Object".into()),
-                // "L" => ScalarTypeName::new("Array".into()),
                 _ => ScalarTypeName::new("Any".into()),
             };
             scalars_list.insert(scalar_type_name.clone());
@@ -179,7 +169,6 @@ pub async fn introspect(
         for item in &result.items.unwrap() {
             for (key, attribute_value) in item {
                 let column_name = FieldName::new(key.clone().into());
-                // dbg!(&column_name);
                 let column_type = if attribute_value.is_s() {
                     let scalar_type_name = ScalarTypeName::new("String".into());
                     scalars_list.insert(scalar_type_name.clone());

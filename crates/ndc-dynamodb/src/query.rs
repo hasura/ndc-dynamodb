@@ -36,7 +36,6 @@ pub async fn query(
             query_request_json = serde_json::to_string(&query_request).unwrap(),
             query_request = ?query_request
         );
-        // dbg!("got the query request");
 
         let plan = async {
             plan_query(configuration, state, query_request).map_err(|err| {
@@ -46,7 +45,6 @@ pub async fn query(
         }
         .instrument(info_span!("Plan query"))
         .await?;
-        // dbg!("planned the query");
 
         let result = async {
             execute_query(state, plan).await.map_err(|err| {
@@ -82,13 +80,8 @@ async fn execute_query(
     plan: sql::execution_plan::ExecutionPlan<sql::execution_plan::Query>,
 ) -> Result<JsonResponse<models::QueryResponse>, query_engine_execution::error::Error> {
     let timer = state.metrics.time_query_execution();
-    let result = query_engine_execution::query::execute(
-        &state.client,
-        &state.metrics,
-        // &state.project_id,
-        plan,
-    )
-    .await
-    .map(JsonResponse::Serialized);
+    let result = query_engine_execution::query::execute(&state.client, &state.metrics, plan)
+        .await
+        .map(JsonResponse::Serialized);
     timer.complete_with(result)
 }

@@ -25,7 +25,6 @@ pub async fn execute(
     match plan.query.variables {
         None => {
             let query_request = plan.query.query_sql().sql;
-            dbg!(&query_request);
             let query_limit: Option<i32> = plan.query.limit.map(|limit| limit as i32);
 
             // Query
@@ -41,7 +40,6 @@ pub async fn execute(
             let mut res_map: Vec<HashMap<String, String>> = vec![];
 
             for item in &rs.items.unwrap() {
-                dbg!(item);
                 let mut hashmap = HashMap::new();
                 for (key, attribute_value) in item.clone() {
                     if attribute_value.is_s() {
@@ -106,19 +104,13 @@ pub async fn execute(
                         println!("Unknown");
                     }
                 }
-                dbg!(item);
                 res_map.push(hashmap);
             }
-
-            dbg!(&res_map);
 
             let mut rows: HashMap<String, Vec<HashMap<String, String>>> = HashMap::new();
             rows.insert("rows".into(), res_map);
 
-            dbg!(&rows);
-
             let rows_stringified = serde_json::to_string(&rows).unwrap();
-            dbg!(&rows_stringified);
 
             let row_value: Value = serde_json::from_str(&rows_stringified).unwrap();
 
