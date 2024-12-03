@@ -83,11 +83,6 @@ fn convert_scalar_types(
                         type_name: scalar_type.type_name,
                         // schema_name: (scalar_type.schema_name),
                         description: scalar_type.description,
-                        aggregate_functions: scalar_type
-                            .aggregate_functions
-                            .into_iter()
-                            .map(|(k, v)| (k, convert_aggregate_function(v)))
-                            .collect(),
                         comparison_operators: scalar_type
                             .comparison_operators
                             .into_iter()
@@ -102,63 +97,6 @@ fn convert_scalar_types(
             .collect(),
     )
 }
-
-fn convert_aggregate_function(
-    aggregate_function: metadata::AggregateFunction,
-) -> query_engine_metadata::metadata::AggregateFunction {
-    query_engine_metadata::metadata::AggregateFunction {
-        return_type: aggregate_function.return_type,
-    }
-}
-
-// fn convert_native_operations(
-//     native_operations: metadata::NativeOperations,
-// ) -> query_engine_metadata::metadata::NativeOperations {
-//     let mut queries = BTreeMap::new();
-//     let mut mutations = BTreeMap::new();
-
-//     for (name, query) in native_operations.queries.0 {
-//         queries.insert(name, convert_native_query_info(query));
-//     }
-//     for (name, mutation) in native_operations.mutations.0 {
-//         mutations.insert(name, convert_native_query_info(mutation));
-//     }
-
-//     query_engine_metadata::metadata::NativeOperations {
-//         queries: query_engine_metadata::metadata::NativeQueries(queries),
-//         mutations: query_engine_metadata::metadata::NativeMutations(mutations),
-//     }
-// }
-
-// fn convert_native_query_info(
-//     native_query_info: metadata::NativeQueryInfo,
-// ) -> query_engine_metadata::metadata::NativeQueryInfo {
-//     query_engine_metadata::metadata::NativeQueryInfo {
-//         sql: convert_native_query_sql_either(native_query_info.sql),
-//         columns: native_query_info
-//             .columns
-//             .into_iter()
-//             .map(|(k, v)| (k, convert_read_only_column_info(v)))
-//             .collect(),
-//         arguments: native_query_info
-//             .arguments
-//             .into_iter()
-//             .map(|(k, v)| (k, convert_read_only_column_info(v)))
-//             .collect(),
-//         description: native_query_info.description,
-//     }
-// }
-
-// fn convert_read_only_column_info(
-//     read_only_column_info: metadata::ReadOnlyColumnInfo,
-// ) -> query_engine_metadata::metadata::ReadOnlyColumnInfo {
-//     query_engine_metadata::metadata::ReadOnlyColumnInfo {
-//         name: read_only_column_info.name,
-//         r#type: convert_type(read_only_column_info.r#type),
-//         nullable: convert_nullable(&read_only_column_info.nullable),
-//         description: read_only_column_info.description,
-//     }
-// }
 
 fn convert_nullable(nullable: &metadata::Nullable) -> query_engine_metadata::metadata::Nullable {
     match nullable {
@@ -175,86 +113,6 @@ fn convert_type(r#type: metadata::Type) -> query_engine_metadata::metadata::Type
         }
     }
 }
-
-// fn convert_native_query_sql_either(
-//     sql: metadata::NativeQuerySqlEither,
-// ) -> query_engine_metadata::metadata::NativeQuerySqlEither {
-//     match sql {
-//         metadata::NativeQuerySqlEither::NativeQuerySql(internal_sql) => {
-//             query_engine_metadata::metadata::NativeQuerySqlEither::NativeQuerySql(
-//                 convert_native_query_sql_internal(internal_sql),
-//             )
-//         }
-//         metadata::NativeQuerySqlEither::NativeQuerySqlExternal(external_sql) => {
-//             query_engine_metadata::metadata::NativeQuerySqlEither::NativeQuerySqlExternal(
-//                 convert_native_query_sql_external(external_sql),
-//             )
-//         }
-//     }
-// }
-
-// fn convert_native_query_sql_internal(
-//     internal_sql: metadata::NativeQuerySql,
-// ) -> query_engine_metadata::metadata::NativeQuerySql {
-//     match internal_sql {
-//         metadata::NativeQuerySql::FromFile { file, sql } => {
-//             query_engine_metadata::metadata::NativeQuerySql::FromFile {
-//                 file,
-//                 sql: convert_native_query_parts(sql),
-//             }
-//         }
-//         metadata::NativeQuerySql::Inline { sql } => {
-//             query_engine_metadata::metadata::NativeQuerySql::Inline {
-//                 sql: convert_native_query_parts(sql),
-//             }
-//         }
-//     }
-// }
-
-// fn convert_native_query_sql_external(
-//     external_sql: metadata::NativeQuerySqlExternal,
-// ) -> query_engine_metadata::metadata::NativeQuerySqlExternal {
-//     match external_sql {
-//         metadata::NativeQuerySqlExternal::File { file } => {
-//             query_engine_metadata::metadata::NativeQuerySqlExternal::File { file }
-//         }
-//         metadata::NativeQuerySqlExternal::Inline { inline } => {
-//             query_engine_metadata::metadata::NativeQuerySqlExternal::Inline {
-//                 inline: convert_native_query_parts(inline),
-//             }
-//         }
-//         metadata::NativeQuerySqlExternal::InlineUntagged(parts) => {
-//             query_engine_metadata::metadata::NativeQuerySqlExternal::InlineUntagged(
-//                 convert_native_query_parts(parts),
-//             )
-//         }
-//     }
-// }
-
-// fn convert_native_query_parts(
-//     inline: metadata::NativeQueryParts,
-// ) -> query_engine_metadata::metadata::NativeQueryParts {
-//     query_engine_metadata::metadata::NativeQueryParts(
-//         inline
-//             .0
-//             .into_iter()
-//             .map(convert_native_query_part)
-//             .collect(),
-//     )
-// }
-
-// fn convert_native_query_part(
-//     native_query_part: metadata::NativeQueryPart,
-// ) -> query_engine_metadata::metadata::NativeQueryPart {
-//     match native_query_part {
-//         metadata::NativeQueryPart::Text(t) => {
-//             query_engine_metadata::metadata::NativeQueryPart::Text(t)
-//         }
-//         metadata::NativeQueryPart::Parameter(p) => {
-//             query_engine_metadata::metadata::NativeQueryPart::Parameter(p)
-//         }
-//     }
-// }
 
 fn convert_type_representation(
     type_representation: metadata::TypeRepresentation,

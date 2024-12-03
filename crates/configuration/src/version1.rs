@@ -176,20 +176,6 @@ pub async fn introspect(
             .await
             .unwrap();
 
-        // let result = match row_1
-        // {
-        //     Ok(resp) => {
-        //         resp.items.unwrap()
-        //     }
-        //     Err(e) => {
-        //         println!("Got an error querying table:");
-        //         println!("{}", e);
-        //         exit(1) //fixme
-        //     }
-        // };
-        // dbg!(&result);
-
-        // let row = result.first().unwrap();
         for item in &result.items.unwrap() {
             for (key, attribute_value) in item {
                 let column_name = FieldName::new(key.clone().into());
@@ -205,6 +191,16 @@ pub async fn introspect(
                 } else if attribute_value.is_bool() {
                     let scalar_type_name = ScalarTypeName::new("Boolean".into());
                     scalars_list.insert(scalar_type_name.clone());
+                    metadata::Type::ScalarType(scalar_type_name)
+                } else if attribute_value.is_b() {
+                    let scalar_type_name = ScalarTypeName::new("Binary".into());
+                    scalars_list.insert(scalar_type_name.clone());
+                    metadata::Type::ScalarType(scalar_type_name)
+                } else if attribute_value.is_l() {
+                    let scalar_type_name = ScalarTypeName::new("List".into());
+                    metadata::Type::ScalarType(scalar_type_name)
+                } else if attribute_value.is_m() {
+                    let scalar_type_name = ScalarTypeName::new("Map".into());
                     metadata::Type::ScalarType(scalar_type_name)
                 } else {
                     metadata::Type::ScalarType(ScalarTypeName::new("Any".into()))
@@ -288,12 +284,17 @@ pub async fn introspect(
     // Scalars
     let mut scalars: BTreeMap<ScalarTypeName, metadata::ScalarType> = BTreeMap::new();
     for scalar in scalars_list {
+        let type_rep = match scalar.as_str() {
+            "String" => Some(metadata::TypeRepresentation::String),
+            "Number" => Some(metadata::TypeRepresentation::Int64),
+            "Boolean" => Some(metadata::TypeRepresentation::Boolean),
+            _ => None,
+        };
         let scalar_type = metadata::ScalarType {
             type_name: scalar.clone(),
             description: None,
-            aggregate_functions: BTreeMap::new(),
             comparison_operators: get_comparison_operators_for_type(&scalar),
-            type_representation: None,
+            type_representation: type_rep,
         };
         scalars.insert(scalar.clone(), scalar_type);
     }
@@ -304,7 +305,6 @@ pub async fn introspect(
             secret_access_key: args.connection_settings.secret_access_key.clone(),
             // provider_name: args.connection_settings.provider_name.clone(),
             region: args.connection_settings.region.clone(),
-            // connection_placeholder: args.connection_settings.connection_placeholder.clone(),
         },
         metadata: metadata::Metadata {
             tables: TablesInfo(tables_info),

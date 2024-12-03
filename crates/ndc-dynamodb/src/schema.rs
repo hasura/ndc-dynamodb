@@ -30,22 +30,7 @@ pub fn get_schema(
                     .type_representation
                     .as_ref()
                     .map(map_type_representation),
-                aggregate_functions: scalar_type_info
-                    .aggregate_functions
-                    .iter()
-                    .map(|(function_name, function_definition)| {
-                        (
-                            function_name.clone(),
-                            models::AggregateFunctionDefinition {
-                                result_type: models::Type::Nullable {
-                                    underlying_type: Box::new(models::Type::Named {
-                                        name: function_definition.return_type.clone(),
-                                    }),
-                                },
-                            },
-                        )
-                    })
-                    .collect(),
+                aggregate_functions: BTreeMap::new(),
                 comparison_operators: scalar_type_info
                     .comparison_operators
                     .iter()

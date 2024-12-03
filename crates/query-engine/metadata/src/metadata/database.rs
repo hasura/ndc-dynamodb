@@ -38,7 +38,6 @@ pub struct ScalarType {
     pub type_name: ScalarTypeName,
     // pub schema_name: Option<String>, // TODO(PY): see what happens when option is removed
     pub description: Option<String>,
-    pub aggregate_functions: BTreeMap<models::AggregateFunctionName, AggregateFunction>,
     pub comparison_operators: BTreeMap<models::ComparisonOperatorName, ComparisonOperator>,
     pub type_representation: Option<TypeRepresentation>,
 }
